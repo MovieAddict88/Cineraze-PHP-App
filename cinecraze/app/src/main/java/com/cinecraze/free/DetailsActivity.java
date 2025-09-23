@@ -896,9 +896,7 @@ public class DetailsActivity extends AppCompatActivity {
                 // Create a lightweight entry with only essential data
                 Entry lightweightEntry = new Entry();
                 lightweightEntry.setTitle(entry.getTitle());
-                lightweightEntry.setSubCategory(entry.getSubCategory());
                 lightweightEntry.setMainCategory(entry.getMainCategory());
-                lightweightEntry.setCountry(entry.getCountry());
                 lightweightEntry.setDescription(entry.getDescription());
                 lightweightEntry.setPoster(entry.getPoster());
                 lightweightEntry.setThumbnail(entry.getThumbnail());

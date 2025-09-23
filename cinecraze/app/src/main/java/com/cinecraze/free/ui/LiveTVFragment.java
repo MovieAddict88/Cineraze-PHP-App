@@ -35,7 +35,6 @@ public class LiveTVFragment extends BaseFragment {
         
         // Filter UI elements
         btnGenreFilter = view.findViewById(R.id.btn_genre_filter);
-        btnCountryFilter = view.findViewById(R.id.btn_country_filter);
         btnYearFilter = view.findViewById(R.id.btn_year_filter);
     }
 
