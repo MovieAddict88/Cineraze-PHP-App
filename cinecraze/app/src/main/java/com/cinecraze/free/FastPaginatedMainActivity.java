@@ -16,11 +16,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.appcompat.app.AlertDialog;
 
-import com.cinecraze.free.models.Entry;
-import com.cinecraze.free.models.PlaylistsVersion;
+import com.cinecraze.free.models.api.Category;
+import com.cinecraze.free.models.api.CineData;
+import com.cinecraze.free.models.api.Entry;
 import com.cinecraze.free.net.ApiService;
 import com.cinecraze.free.net.RetrofitClient;
-import com.cinecraze.free.repository.DataRepository;
 import com.cinecraze.free.R;
 import com.gauravk.bubblenavigation.BubbleNavigationConstraintView;
 
@@ -59,15 +59,8 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
     private ImageView gridViewIcon;
     private ImageView listViewIcon;
     private BubbleNavigationConstraintView bottomNavigationView;
-    private ImageView searchIcon;
-    private ImageView closeSearchIcon;
-    private LinearLayout titleLayout;
-    private LinearLayout searchLayout;
-    private AutoCompleteTextView searchBar;
 
     private boolean isGridView = true;
-    private boolean isSearchVisible = false;
-    private DataRepository dataRepository;
 
     // Pagination variables
     private int currentPage = 0;
@@ -77,8 +70,6 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
     private String currentCategory = "";
     private String currentSearchQuery = "";
     private boolean isLoading = false;
-
-    private AlertDialog downloadingDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,10 +92,6 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
         setupCarousel();
         setupBottomNavigation();
         setupViewSwitch();
-        setupSearchToggle();
-
-        // Initialize repository
-        dataRepository = new DataRepository(this);
 
         // Load ONLY first page - this is the key difference!
         loadInitialDataFast();
@@ -116,11 +103,6 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
         gridViewIcon = findViewById(R.id.grid_view_icon);
         listViewIcon = findViewById(R.id.list_view_icon);
         bottomNavigationView = (BubbleNavigationConstraintView) findViewById(R.id.bottom_navigation);
-        searchIcon = findViewById(R.id.search_icon);
-        closeSearchIcon = findViewById(R.id.close_search_icon);
-        titleLayout = findViewById(R.id.title_layout);
-        searchLayout = findViewById(R.id.search_layout);
-        searchBar = findViewById(R.id.search_bar);
     }
 
     private void setupRecyclerView() {
@@ -189,77 +171,6 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
         }
     }
 
-    private void setupSearchToggle() {
-        searchIcon.setOnClickListener(v -> showSearchBar());
-        closeSearchIcon.setOnClickListener(v -> hideSearchBar());
-
-        searchBar.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String query = s.toString().trim();
-                if (query.length() > 2) {
-                    performSearch(query);
-                } else if (query.isEmpty()) {
-                    clearSearch();
-                }
-            }
-
-            @Override
-            public void afterTextChanged(android.text.Editable s) {}
-        });
-    }
-
-    private void showSearchBar() {
-        try {
-            if (!isSearchVisible && titleLayout != null && searchLayout != null) {
-                titleLayout.setVisibility(View.GONE);
-                searchLayout.setVisibility(View.VISIBLE);
-                isSearchVisible = true;
-                searchBar.requestFocus();
-            }
-        } catch (Exception e) {
-            Log.e("FastPaginatedMainActivity", "Error showing search bar: " + e.getMessage(), e);
-        }
-    }
-
-    private void hideSearchBar() {
-        try {
-            if (isSearchVisible && titleLayout != null && searchLayout != null) {
-                searchLayout.setVisibility(View.GONE);
-                titleLayout.setVisibility(View.VISIBLE);
-                isSearchVisible = false;
-
-                if (searchBar != null) {
-                    searchBar.setText("");
-                    searchBar.clearFocus();
-                    android.view.inputmethod.InputMethodManager imm =
-                        (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-                    if (imm != null) {
-                        imm.hideSoftInputFromWindow(searchBar.getWindowToken(), 0);
-                    }
-                }
-
-                clearSearch();
-            }
-        } catch (Exception e) {
-            Log.e("FastPaginatedMainActivity", "Error hiding search bar: " + e.getMessage(), e);
-        }
-    }
-
-    private void performSearch(String query) {
-        currentSearchQuery = query.trim();
-        currentPage = 0;
-        loadSearchResults();
-    }
-
-    private void clearSearch() {
-        currentSearchQuery = "";
-        currentPage = 0;
-        loadPage();
-    }
 
     private void filterByCategory(String category) {
         currentCategory = category;
@@ -268,135 +179,12 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
         loadPage();
     }
 
-    private void showDownloadingDialog(long estimatedBytes) {
-        String sizeText;
-        if (estimatedBytes > 0) {
-            double mb = estimatedBytes / (1024.0 * 1024.0);
-            sizeText = String.format(Locale.getDefault(), "%.1f MB", mb);
-        } else {
-            sizeText = "unknown size";
-        }
-
-        android.widget.LinearLayout container = new android.widget.LinearLayout(this);
-        container.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        int padding = (int) (16 * getResources().getDisplayMetrics().density);
-        container.setPadding(padding, padding, padding, padding);
-
-        android.widget.ProgressBar progressBar = new android.widget.ProgressBar(this);
-        progressBar.setIndeterminate(true);
-        android.widget.LinearLayout.LayoutParams pbParams = new android.widget.LinearLayout.LayoutParams(
-            (int) (24 * getResources().getDisplayMetrics().density),
-            (int) (24 * getResources().getDisplayMetrics().density)
-        );
-        pbParams.setMargins(0, 0, padding, 0);
-        progressBar.setLayoutParams(pbParams);
-
-        android.widget.TextView message = new android.widget.TextView(this);
-        message.setText("Downloading data (" + sizeText + ")...\nPlease wait, this may take a moment.");
-        message.setTextSize(14);
-
-        container.addView(progressBar);
-        container.addView(message);
-
-        downloadingDialog = new AlertDialog.Builder(this)
-            .setTitle("Downloading")
-            .setView(container)
-            .setCancelable(false)
-            .create();
-        downloadingDialog.setCanceledOnTouchOutside(false);
-        downloadingDialog.show();
-    }
-
     /**
      * FAST INITIAL LOAD - Only checks if cache exists, doesn't load all data
      */
     private void loadInitialDataFast() {
-        Log.d("FastPaginatedMainActivity", "Checking for updates on startup");
+        Log.d("FastPaginatedMainActivity", "Loading initial data from API");
         findViewById(R.id.progress_bar).setVisibility(View.VISIBLE);
-        checkForUpdatesAndPrompt();
-    }
-
-    private void checkForUpdatesAndPrompt() {
-        dataRepository.checkForUpdates(new DataRepository.UpdateCheckCallback() {
-            @Override
-            public void onUpdateAvailable(PlaylistsVersion newVersion) {
-                new AlertDialog.Builder(FastPaginatedMainActivity.this)
-                    .setTitle("Update Available")
-                    .setMessage("A new content update is available. Do you want to download it now?")
-                    .setPositiveButton("Download", (dialog, which) -> {
-                        showDownloadingDialog(-1L);
-                        dataRepository.downloadPlaylists(newVersion, new DataRepository.DataCallback() {
-                            @Override
-                            public void onSuccess(List<Entry> entries) {
-                                if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                    downloadingDialog.dismiss();
-                                }
-                                Toast.makeText(FastPaginatedMainActivity.this, "Update complete!", Toast.LENGTH_SHORT).show();
-                                loadFirstPageOnly();
-                                setupCarouselFast();
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                    downloadingDialog.dismiss();
-                                }
-                                Toast.makeText(FastPaginatedMainActivity.this, "Update failed: " + error, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    })
-                    .setNegativeButton("Later", (dialog, which) -> {
-                        Toast.makeText(FastPaginatedMainActivity.this, "Using cached data. Update will be available next time.", Toast.LENGTH_SHORT).show();
-                        loadFirstPageOnly();
-                        setupCarouselFast();
-                    })
-                    .setCancelable(false)
-                    .show();
-            }
-
-            @Override
-            public void onNoUpdate() {
-                Log.d("FastPaginatedMainActivity", "No update needed. Loading from cache.");
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                loadFirstPageOnly();
-                setupCarouselFast();
-            }
-
-            @Override
-            public void onError(String error) {
-                Log.e("FastPaginatedMainActivity", "Error checking for updates: " + error);
-                Toast.makeText(FastPaginatedMainActivity.this, "Could not check for updates. Using cached data.", Toast.LENGTH_LONG).show();
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                loadFirstPageOnly();
-                setupCarouselFast();
-            }
-        });
-    }
-
-    /**
-     * Load carousel with only 5 items - no bulk loading
-     */
-    private void setupCarouselFast() {
-        dataRepository.getPaginatedData(0, 5, new DataRepository.PaginatedDataCallback() {
-            @Override
-            public void onSuccess(List<Entry> carouselEntries, boolean hasMorePages, int totalCount) {
-                Log.d("FastPaginatedMainActivity", "Fast carousel loaded: " + carouselEntries.size() + " items only");
-                carouselAdapter = new CarouselAdapter(FastPaginatedMainActivity.this, carouselEntries);
-                carouselViewPager.setAdapter(carouselAdapter);
-                carouselAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onError(String error) {
-                Log.e("FastPaginatedMainActivity", "Error loading carousel: " + error);
-                carouselAdapter = new CarouselAdapter(FastPaginatedMainActivity.this, new ArrayList<>());
-                carouselViewPager.setAdapter(carouselAdapter);
-            }
-        });
-    }
-
-    private void loadFirstPageOnly() {
-        currentPage = 0;
         loadPage();
     }
 
@@ -408,64 +196,44 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
 
         Log.d("FastPaginatedMainActivity", "Loading page " + currentPage + " with " + pageSize + " items");
 
-        if (!currentSearchQuery.isEmpty()) {
-            loadSearchResults();
-        } else if (!currentCategory.isEmpty()) {
-            loadCategoryPage();
-        } else {
-            loadAllEntriesPage();
-        }
-    }
+        ApiService apiService = RetrofitClient.getClient().create(ApiService.class);
+        Call<CineData> call = apiService.getContent(currentPage + 1, pageSize, "newest", currentCategory.toLowerCase());
 
-    private void loadAllEntriesPage() {
-        dataRepository.getPaginatedData(currentPage, pageSize, new DataRepository.PaginatedDataCallback() {
+        call.enqueue(new Callback<CineData>() {
             @Override
-            public void onSuccess(List<Entry> entries, boolean hasMorePages, int totalCount) {
+            public void onResponse(Call<CineData> call, Response<CineData> response) {
                 findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                updatePageData(entries, hasMorePages, totalCount);
-                Log.d("FastPaginatedMainActivity", "Loaded page " + currentPage + ": " + entries.size() + " items (Total: " + totalCount + ")");
+                isLoading = false;
+                movieAdapter.setLoading(false);
+
+                if (response.isSuccessful() && response.body() != null) {
+                    CineData cineData = response.body();
+                    List<Entry> allEntries = new ArrayList<>();
+                    for (Category category : cineData.getCategories()) {
+                        allEntries.addAll(category.getEntries());
+                    }
+                    updatePageData(allEntries, cineData.getPagination().getPage() < cineData.getPagination().getTotalPages(), cineData.getPagination().getTotalItems());
+                    if (currentPage == 0) {
+                        setupCarousel(allEntries);
+                    }
+                } else {
+                    handlePageLoadError("API Error: " + response.code());
+                }
             }
 
             @Override
-            public void onError(String error) {
+            public void onFailure(Call<CineData> call, Throwable t) {
                 findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                handlePageLoadError(error);
-            }
-        });
-    }
-
-    private void loadCategoryPage() {
-        dataRepository.getPaginatedDataByCategory(currentCategory, currentPage, pageSize, new DataRepository.PaginatedDataCallback() {
-            @Override
-            public void onSuccess(List<Entry> entries, boolean hasMorePages, int totalCount) {
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                updatePageData(entries, hasMorePages, totalCount);
-                Log.d("FastPaginatedMainActivity", "Category '" + currentCategory + "' page " + currentPage + ": " + entries.size() + " items");
-            }
-
-            @Override
-            public void onError(String error) {
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                handlePageLoadError(error);
+                handlePageLoadError("Network Error: " + t.getMessage());
             }
         });
     }
 
-    private void loadSearchResults() {
-        dataRepository.searchPaginated(currentSearchQuery, currentPage, pageSize, new DataRepository.PaginatedDataCallback() {
-            @Override
-            public void onSuccess(List<Entry> entries, boolean hasMorePages, int totalCount) {
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                updatePageData(entries, hasMorePages, totalCount);
-                Log.d("FastPaginatedMainActivity", "Search '" + currentSearchQuery + "' page " + currentPage + ": " + entries.size() + " results");
-            }
-
-            @Override
-            public void onError(String error) {
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                handlePageLoadError(error);
-            }
-        });
+    private void setupCarousel(List<Entry> entries) {
+        List<Entry> carouselEntries = new ArrayList<>(entries.subList(0, Math.min(entries.size(), 5)));
+        carouselAdapter = new CarouselAdapter(FastPaginatedMainActivity.this, carouselEntries);
+        carouselViewPager.setAdapter(carouselAdapter);
+        carouselAdapter.notifyDataSetChanged();
     }
 
     private void updatePageData(List<Entry> entries, boolean hasMorePages, int totalCount) {

@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public class RetrofitClient {
 
     private static Retrofit retrofit = null;
-    private static final String BASE_URL = "https://raw.githubusercontent.com/MovieAddict88/Movie-Source/main/";
+    private static final String BASE_URL = "https://moviefcs.infinityfreeapp.com/api/";
 
     public static Retrofit getClient() {
         if (retrofit == null) {
