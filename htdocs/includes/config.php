@@ -31,9 +31,9 @@ function db_connect() {
     $conn = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, DB_NAME);
 
     if ($conn->connect_error) {
-        // In a real application, you'd want to handle this more gracefully
-        // and not expose detailed error messages.
-        die("Connection failed: " . $conn->connect_error);
+        // Log the error instead of dying
+        error_log("Database connection failed: " . $conn->connect_error);
+        return false;
     }
 
     return $conn;

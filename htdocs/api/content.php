@@ -3,9 +3,9 @@ header('Content-Type: application/json');
 require_once '../includes/config.php';
 
 $conn = db_connect();
-if (!$conn) {
+if ($conn === false) {
     http_response_code(500);
-    echo json_encode(['error' => 'Database connection failed']);
+    echo json_encode(['error' => 'Could not connect to the database.']);
     exit;
 }
 
