@@ -72,21 +72,18 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
         if (holder.year != null) {
             holder.year.setText(String.valueOf(entry.getYear()));
         }
-        if (holder.country != null) {
-            holder.country.setText(entry.getCountry());
-        }
         if (holder.duration != null) {
             holder.duration.setText(entry.getDuration());
         }
         
         // Set category badge (on poster) - Genre badge
         if (holder.categoryBadge != null) {
-            setCategoryBadge(holder.categoryBadge, entry.getSubCategory());
+            setCategoryBadge(holder.categoryBadge, entry.getMainCategory());
         }
         
         // Set type badge (below title) - Content type badge
         if (holder.typeBadge != null) {
-            setTypeBadge(holder.typeBadge, entry.getMainCategory());
+            setTypeBadge(holder.typeBadge, entry.getType());
         }
 
         holder.itemView.setOnClickListener(v -> {
@@ -110,9 +107,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
                     // Create a lightweight entry with only essential data
                     Entry lightweightEntry = new Entry();
                     lightweightEntry.setTitle(entry.getTitle());
-                    lightweightEntry.setSubCategory(entry.getSubCategory());
                     lightweightEntry.setMainCategory(entry.getMainCategory());
-                    lightweightEntry.setCountry(entry.getCountry());
                     lightweightEntry.setDescription(entry.getDescription());
                     lightweightEntry.setPoster(entry.getPoster());
                     lightweightEntry.setThumbnail(entry.getThumbnail());
@@ -226,7 +221,6 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
         RatingBar rating;
         TextView description;
         TextView year;
-        TextView country;
         TextView duration;
         TextView categoryBadge;
         TextView typeBadge;
@@ -238,7 +232,6 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
             rating = itemView.findViewById(R.id.rating);
             description = itemView.findViewById(R.id.description);
             year = itemView.findViewById(R.id.year);
-            country = itemView.findViewById(R.id.country);
             duration = itemView.findViewById(R.id.duration);
             categoryBadge = itemView.findViewById(R.id.category_badge);
             typeBadge = itemView.findViewById(R.id.type_badge);

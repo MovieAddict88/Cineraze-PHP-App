@@ -55,7 +55,6 @@ public class TestDetailsActivity extends AppCompatActivity {
         entry.setTitle("Sample Movie");
         entry.setDescription("This is a sample movie to test the enhanced DetailsActivity functionality.");
         entry.setMainCategory("Movie");
-        entry.setSubCategory("Action");
         entry.setDuration("120 min");
         entry.setYear(2024);
         entry.setRating(8.5f);
@@ -114,7 +113,6 @@ public class TestDetailsActivity extends AppCompatActivity {
         entry.setTitle("Sample TV Series");
         entry.setDescription("This is a sample TV series to test the enhanced DetailsActivity functionality with seasons and episodes.");
         entry.setMainCategory("TV Series");
-        entry.setSubCategory("Drama");
         entry.setDuration("45 min");
         entry.setYear(2024);
         entry.setRating(9.0f);

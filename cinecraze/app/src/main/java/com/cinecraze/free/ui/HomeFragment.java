@@ -36,7 +36,6 @@ public class HomeFragment extends BaseFragment {
         
         // Filter UI elements
         btnGenreFilter = view.findViewById(R.id.btn_genre_filter);
-        btnCountryFilter = view.findViewById(R.id.btn_country_filter);
         btnYearFilter = view.findViewById(R.id.btn_year_filter);
     }
 
@@ -51,9 +50,6 @@ public class HomeFragment extends BaseFragment {
         // Ensure filters are visible and working in Home fragment
         if (btnGenreFilter != null) {
             btnGenreFilter.setVisibility(android.view.View.VISIBLE);
-        }
-        if (btnCountryFilter != null) {
-            btnCountryFilter.setVisibility(android.view.View.VISIBLE);
         }
         if (btnYearFilter != null) {
             btnYearFilter.setVisibility(android.view.View.VISIBLE);

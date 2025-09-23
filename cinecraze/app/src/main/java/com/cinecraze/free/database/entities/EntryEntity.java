@@ -7,18 +7,15 @@ import androidx.room.ColumnInfo;
 @Entity(tableName = "entries")
 public class EntryEntity {
     
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey
     private int id;
     
     @ColumnInfo(name = "title")
     private String title;
     
-    @ColumnInfo(name = "sub_category")
-    private String subCategory;
-    
-    @ColumnInfo(name = "country")
-    private String country;
-    
+    @ColumnInfo(name = "type")
+    private String type;
+
     @ColumnInfo(name = "description")
     private String description;
     
@@ -29,33 +26,29 @@ public class EntryEntity {
     private String thumbnail;
     
     @ColumnInfo(name = "rating")
-    private String rating; // Store as string to handle mixed types
+    private String rating;
     
     @ColumnInfo(name = "duration")
     private String duration;
     
     @ColumnInfo(name = "year")
-    private String year; // Store as string to handle mixed types
+    private String year;
     
+    @ColumnInfo(name = "parental_rating")
+    private String parentalRating;
+
     @ColumnInfo(name = "main_category")
-    private String mainCategory; // To associate with category
+    private String mainCategory;
     
-    // Constructor
-    public EntryEntity() {}
-    
-    // Getters and setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
     
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     
-    public String getSubCategory() { return subCategory; }
-    public void setSubCategory(String subCategory) { this.subCategory = subCategory; }
-    
-    public String getCountry() { return country; }
-    public void setCountry(String country) { this.country = country; }
-    
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     
@@ -74,6 +67,9 @@ public class EntryEntity {
     public String getYear() { return year; }
     public void setYear(String year) { this.year = year; }
     
+    public String getParentalRating() { return parentalRating; }
+    public void setParentalRating(String parentalRating) { this.parentalRating = parentalRating; }
+
     public String getMainCategory() { return mainCategory; }
     public void setMainCategory(String mainCategory) { this.mainCategory = mainCategory; }
 }

@@ -196,7 +196,7 @@ public class FullScreenActivity extends AppCompatActivity implements
             VideoServerUtils.isMultiEmbedUrl(nextUrl) || VideoServerUtils.isYouTubeUrl(nextUrl) ||
             VideoServerUtils.isGoogleDriveUrl(nextUrl) || VideoServerUtils.isMegaUrl(nextUrl)) {
             String serversJson = new Gson().toJson(availableServers);
-            EmbedActivity.startWithServers(this, nextUrl, server.getLicense(), server.isDrmProtected(), drmRobustness, availableServers, position);
+            EmbedActivity.startWithServers(this, nextUrl, null, false, drmRobustness, availableServers, position);
             finish();
             return;
         }
