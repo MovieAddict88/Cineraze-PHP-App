@@ -480,9 +480,9 @@ public class EmbedActivity extends AppCompatActivity {
             if (nextIsMpd) {
                 // Switch within this activity using Shaka Player HTML
                 url = nextUrl;
-                drmLicense = server.getLicense();
+                drmLicense = null;
                 isDrmExplicit = true;
-                isDrmFromIntent = server.isDrmProtected();
+                isDrmFromIntent = false;
                 loadShakaPlayerHtml(nextUrl);
                 Toast.makeText(this, "Switching to " + server.getName(), Toast.LENGTH_SHORT).show();
                 return;

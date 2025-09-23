@@ -50,16 +50,15 @@ public class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.ViewHo
         Entry entry = entryList.get(position);
 
         holder.title.setText(entry.getTitle());
-        holder.country.setText(entry.getCountry());
         holder.year.setText(String.valueOf(entry.getYear()));
         holder.duration.setText(entry.getDuration());
         Glide.with(context).load(entry.getPoster()).into(holder.poster);
         
         // Set category badge (on poster) - Genre badge
-        setCategoryBadge(holder.categoryBadge, entry.getSubCategory());
+        setCategoryBadge(holder.categoryBadge, entry.getMainCategory());
         
         // Set type badge (below info) - Content type badge
-        setTypeBadge(holder.typeBadge, entry.getMainCategory());
+        setTypeBadge(holder.typeBadge, entry.getType());
 
         holder.playButton.setOnClickListener(v -> {
             try {
@@ -81,9 +80,7 @@ public class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.ViewHo
                     // Create a lightweight entry with only essential data
                     Entry lightweightEntry = new Entry();
                     lightweightEntry.setTitle(entry.getTitle());
-                    lightweightEntry.setSubCategory(entry.getSubCategory());
                     lightweightEntry.setMainCategory(entry.getMainCategory());
-                    lightweightEntry.setCountry(entry.getCountry());
                     lightweightEntry.setDescription(entry.getDescription());
                     lightweightEntry.setPoster(entry.getPoster());
                     lightweightEntry.setThumbnail(entry.getThumbnail());
@@ -194,7 +191,6 @@ public class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.ViewHo
     public class ViewHolder extends RecyclerView.ViewHolder {
         ImageView poster;
         TextView title;
-        TextView country;
         TextView year;
         TextView duration;
         TextView categoryBadge;
@@ -205,7 +201,6 @@ public class CarouselAdapter extends RecyclerView.Adapter<CarouselAdapter.ViewHo
             super(itemView);
             poster = itemView.findViewById(R.id.poster);
             title = itemView.findViewById(R.id.title);
-            country = itemView.findViewById(R.id.country);
             year = itemView.findViewById(R.id.year);
             duration = itemView.findViewById(R.id.duration);
             categoryBadge = itemView.findViewById(R.id.category_badge);

@@ -220,15 +220,6 @@ public class DataRepository {
         }
     }
 
-    public List<String> getUniqueCountries() {
-        try {
-            return database.entryDao().getUniqueCountries();
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting unique countries: " + e.getMessage(), e);
-            return new ArrayList<>();
-        }
-    }
-
     public List<String> getUniqueYears() {
         try {
             return database.entryDao().getUniqueYears();
@@ -238,18 +229,26 @@ public class DataRepository {
         }
     }
 
-    public void getPaginatedFilteredData(String genre, String country, String year, int page, int pageSize, PaginatedDataCallback callback) {
+    public void getPaginatedFilteredData(String genre, String year, int page, int pageSize, PaginatedDataCallback callback) {
         try {
             int offset = (page - 1) * pageSize;
             List<EntryWithDetails> entities = database.entryDao().getEntriesWithDetailsFilteredPaged(
-                genre, country, year, pageSize, offset
+                genre, year, pageSize, offset
             );
             List<Entry> entries = DatabaseUtils.entitiesToEntries(entities);
-            int totalCount = database.entryDao().getEntriesFilteredCount(genre, country, year);
+            int totalCount = database.entryDao().getEntriesFilteredCount(genre, year);
             boolean hasMorePages = (offset + pageSize) < totalCount;
             callback.onSuccess(entries, hasMorePages, totalCount);
         } catch (Exception e) {
             callback.onError("Error loading filtered page: " + e.getMessage());
         }
+    }
+
+    public Entry getEntryWithDetails(int entryId) {
+        EntryWithDetails entryWithDetails = database.entryDao().getEntryWithDetails(entryId);
+        if (entryWithDetails != null) {
+            return DatabaseUtils.entityToEntry(entryWithDetails);
+        }
+        return null;
     }
 }

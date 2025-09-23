@@ -11,6 +11,8 @@ public class Entry {
     @SerializedName("type")
     private String type;
 
+    private String mainCategory;
+
     @SerializedName("Title")
     private String title;
 
@@ -141,5 +143,13 @@ public class Entry {
 
     public void setSeasons(List<Season> seasons) {
         this.seasons = seasons;
+    }
+
+    public String getMainCategory() {
+        return type;
+    }
+
+    public void setMainCategory(String mainCategory) {
+        this.type = mainCategory;
     }
 }
