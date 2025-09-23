@@ -1,13 +1,14 @@
 package com.cinecraze.free.models;
 
-import com.google.gson.annotations.SerializedName;
-
 import java.util.List;
 
-public class Playlist {
-
-    @SerializedName("Categories")
+public class CineData {
+    private Pagination pagination;
     private List<Category> categories;
+
+    public Pagination getPagination() {
+        return pagination;
+    }
 
     public List<Category> getCategories() {
         return categories;

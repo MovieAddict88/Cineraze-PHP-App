@@ -295,14 +295,11 @@ public abstract class BaseFragment extends Fragment {
             swipeRefreshLayout.setOnRefreshListener(() -> {
                 currentPage = 0;
                 currentSearchQuery = "";
-                // Force fetch latest data from API, then reload the current page from cache
                 if (dataRepository != null) {
-                    dataRepository.forceRefreshData(new DataRepository.DataCallback() {
+                    dataRepository.syncRemoteData(new DataRepository.DataCallback() {
                         @Override
-                        public void onSuccess(List<Entry> entries) {
-                            // After cache is updated, reload paginated data
+                        public void onSuccess() {
                             loadPageData();
-                            // updatePageData() will stop the refreshing indicator
                         }
 
                         @Override
@@ -318,7 +315,6 @@ public abstract class BaseFragment extends Fragment {
                         }
                     });
                 } else {
-                    // Fallback: just reload current page
                     loadPageData();
                 }
             });
@@ -327,26 +323,8 @@ public abstract class BaseFragment extends Fragment {
 
     protected void loadInitialData() {
         currentPage = 0;
-        
-        // Ensure data is available before loading
-        dataRepository.ensureDataAvailable(new DataRepository.DataCallback() {
-            @Override
-            public void onSuccess(List<Entry> entries) {
-                loadPageData();
-                populateFilterSpinners(); // Populate filter spinners after data is loaded
-                // After initial load, check in background if newer data exists and update UI if so
-                triggerBackgroundRefreshIfNeeded();
-            }
-            
-            @Override
-            public void onError(String error) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), "Failed to initialize: " + error, Toast.LENGTH_LONG).show();
-                    });
-                }
-            }
-        });
+        loadPageData();
+        populateFilterSpinners();
     }
 
     protected void loadPageData() {
@@ -570,27 +548,5 @@ public abstract class BaseFragment extends Fragment {
     // Public method to be called from MainActivity for search
     public void performSearch(String query) {
         filterByQuery(query);
-    }
-
-    private void triggerBackgroundRefreshIfNeeded() {
-        if (dataRepository == null) return;
-        final int beforeCount = dataRepository.getTotalEntriesCount();
-        dataRepository.forceRefreshData(new DataRepository.DataCallback() {
-            @Override
-            public void onSuccess(List<Entry> entries) {
-                int afterCount = dataRepository.getTotalEntriesCount();
-                if (afterCount != beforeCount && getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        currentPage = 0;
-                        loadPageData();
-                    });
-                }
-            }
-
-            @Override
-            public void onError(String error) {
-                // Silent fail; keep cached data
-            }
-        });
     }
 }

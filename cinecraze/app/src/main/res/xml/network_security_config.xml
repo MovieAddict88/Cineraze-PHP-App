@@ -4,5 +4,6 @@
         <domain includeSubdomains="true">raw.githubusercontent.com</domain>
         <domain includeSubdomains="true">github.com</domain>
         <domain includeSubdomains="true">githubusercontent.com</domain>
+        <domain includeSubdomains="true">moviefcs.infinityfreeapp.com</domain>
     </domain-config>
 </network-security-config>
