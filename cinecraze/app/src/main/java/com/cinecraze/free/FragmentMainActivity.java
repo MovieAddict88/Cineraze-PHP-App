@@ -62,6 +62,9 @@ public class FragmentMainActivity extends AppCompatActivity {
         dataRepository.syncRemoteData(new DataRepository.DataCallback() {
             @Override
             public void onSuccess() {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 if (progressDialog != null && progressDialog.isShowing()) {
                     progressDialog.dismiss();
                 }
@@ -71,6 +74,9 @@ public class FragmentMainActivity extends AppCompatActivity {
 
             @Override
             public void onError(String error) {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
                 if (progressDialog != null && progressDialog.isShowing()) {
                     progressDialog.dismiss();
                 }
