@@ -12,9 +12,8 @@ import com.cinecraze.free.database.entities.EpisodeEntity;
 import com.cinecraze.free.database.entities.SeasonEntity;
 import com.cinecraze.free.database.entities.ServerEntity;
 import com.cinecraze.free.models.Category;
+import com.cinecraze.free.models.ApiResponse;
 import com.cinecraze.free.models.Entry;
-import com.cinecraze.free.models.Playlist;
-import com.cinecraze.free.models.PlaylistsVersion;
 import com.cinecraze.free.net.ApiService;
 import com.cinecraze.free.net.RetrofitClient;
 
@@ -22,11 +21,7 @@ import java.util.ArrayList;
 import android.os.Handler;
 import android.os.Looper;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.TimeUnit;
 
 import retrofit2.Call;
