@@ -1,16 +1,12 @@
 package com.cinecraze.free.models;
 
 import com.google.gson.annotations.SerializedName;
-
 import java.util.List;
 
 public class Category {
 
     @SerializedName("MainCategory")
     private String mainCategory;
-
-    @SerializedName("SubCategories")
-    private List<String> subCategories;
 
     @SerializedName("Entries")
     private List<Entry> entries;
@@ -19,11 +15,15 @@ public class Category {
         return mainCategory;
     }
 
-    public List<String> getSubCategories() {
-        return subCategories;
+    public void setMainCategory(String mainCategory) {
+        this.mainCategory = mainCategory;
     }
 
     public List<Entry> getEntries() {
         return entries;
+    }
+
+    public void setEntries(List<Entry> entries) {
+        this.entries = entries;
     }
 }

@@ -204,58 +204,10 @@ public abstract class BaseFragment extends Fragment {
 
     protected void setupFilters() {
         if (btnGenreFilter != null && btnCountryFilter != null && btnYearFilter != null) {
-            // Initialize filter spinners only if they haven't been created yet
-            if (genreSpinner == null) {
-                genreSpinner = new FilterSpinner(getContext(), "Genre", new ArrayList<>(), currentGenreFilter);
-                countrySpinner = new FilterSpinner(getContext(), "Country", new ArrayList<>(), currentCountryFilter);
-                yearSpinner = new FilterSpinner(getContext(), "Year", new ArrayList<>(), currentYearFilter);
-
-                // Common filter selection listener
-                FilterSpinner.OnFilterSelectedListener filterListener = (filterType, filterValue) -> {
-                    switch (filterType) {
-                        case "Genre":
-                            currentGenreFilter = filterValue;
-                            btnGenreFilter.setText(filterValue != null ? filterValue : "Genre");
-                            break;
-                        case "Country":
-                            currentCountryFilter = filterValue;
-                            btnCountryFilter.setText(filterValue != null ? filterValue : "Country");
-                            break;
-                        case "Year":
-                            currentYearFilter = filterValue;
-                            btnYearFilter.setText(filterValue != null ? filterValue : "Year");
-                            break;
-                    }
-
-                    // Reset pagination and apply filters
-                    currentPage = 0;
-                    currentSearchQuery = ""; // Clear search when filtering
-                    loadPageData();
-                };
-
-                genreSpinner.setOnFilterSelectedListener(filterListener);
-                countrySpinner.setOnFilterSelectedListener(filterListener);
-                yearSpinner.setOnFilterSelectedListener(filterListener);
-
-                // Set up button click listeners to show spinners
-                btnGenreFilter.setOnClickListener(v -> {
-                    populateFilterSpinners();
-                    dismissAllSpinners();
-                    genreSpinner.show(btnGenreFilter);
-                });
-
-                btnCountryFilter.setOnClickListener(v -> {
-                    populateFilterSpinners();
-                    dismissAllSpinners();
-                    countrySpinner.show(btnCountryFilter);
-                });
-
-                btnYearFilter.setOnClickListener(v -> {
-                    populateFilterSpinners();
-                    dismissAllSpinners();
-                    yearSpinner.show(btnYearFilter);
-                });
-            }
+            // Since filtering is not supported by the new API, hide the filter buttons.
+            btnGenreFilter.setVisibility(View.GONE);
+            btnCountryFilter.setVisibility(View.GONE);
+            btnYearFilter.setVisibility(View.GONE);
         }
     }
     
@@ -295,14 +247,13 @@ public abstract class BaseFragment extends Fragment {
             swipeRefreshLayout.setOnRefreshListener(() -> {
                 currentPage = 0;
                 currentSearchQuery = "";
-                // Force fetch latest data from API, then reload the current page from cache
+                // Force fetch latest data from API
                 if (dataRepository != null) {
-                    dataRepository.forceRefreshData(new DataRepository.DataCallback() {
+                    dataRepository.forceRefreshData(new DataRepository.PaginatedDataCallback() {
                         @Override
-                        public void onSuccess(List<Entry> entries) {
-                            // After cache is updated, reload paginated data
-                            loadPageData();
-                            // updatePageData() will stop the refreshing indicator
+                        public void onSuccess(List<Entry> entries, boolean hasMorePages, int totalCount) {
+                            // Directly update the UI with the new data
+                            updatePageData(entries, hasMorePages, totalCount);
                         }
 
                         @Override
@@ -319,7 +270,7 @@ public abstract class BaseFragment extends Fragment {
                     });
                 } else {
                     // Fallback: just reload current page
-                    loadPageData();
+                    swipeRefreshLayout.setRefreshing(false);
                 }
             });
         }
@@ -327,26 +278,11 @@ public abstract class BaseFragment extends Fragment {
 
     protected void loadInitialData() {
         currentPage = 0;
-        
-        // Ensure data is available before loading
-        dataRepository.ensureDataAvailable(new DataRepository.DataCallback() {
-            @Override
-            public void onSuccess(List<Entry> entries) {
-                loadPageData();
-                populateFilterSpinners(); // Populate filter spinners after data is loaded
-                // After initial load, check in background if newer data exists and update UI if so
-                triggerBackgroundRefreshIfNeeded();
-            }
-            
-            @Override
-            public void onError(String error) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        Toast.makeText(getContext(), "Failed to initialize: " + error, Toast.LENGTH_LONG).show();
-                    });
-                }
-            }
-        });
+        loadPageData();
+        populateFilterSpinners();
+        // The background refresh logic is also tied to the old cache system.
+        // I will comment it out for now.
+        // triggerBackgroundRefreshIfNeeded();
     }
 
     protected void loadPageData() {
@@ -449,9 +385,31 @@ public abstract class BaseFragment extends Fragment {
             
             // Load carousel data if this is the first page and home fragment
             if (currentPage == 0 && carouselAdapter != null && getCategory().isEmpty()) {
-                List<Entry> topRatedEntries = dataRepository.getTopRatedEntries(10);
-                carouselAdapter.setEntries(topRatedEntries);
-                carouselAdapter.notifyDataSetChanged();
+                dataRepository.getTopRatedEntries(10, new DataRepository.DataCallback() {
+                    @Override
+                    public void onSuccess(List<Entry> entries) {
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                if (carouselAdapter != null) {
+                                    carouselAdapter.setEntries(entries);
+                                }
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.w("BaseFragment", "Could not load top rated entries for carousel: " + error);
+                        // Optionally, hide the carousel or show an error message
+                        if (getActivity() != null) {
+                            getActivity().runOnUiThread(() -> {
+                                if (carouselViewPager != null) {
+                                    carouselViewPager.setVisibility(View.GONE);
+                                }
+                            });
+                        }
+                    }
+                });
             }
         });
     }
@@ -569,28 +527,9 @@ public abstract class BaseFragment extends Fragment {
 
     // Public method to be called from MainActivity for search
     public void performSearch(String query) {
-        filterByQuery(query);
+        if (getContext() != null) {
+            Toast.makeText(getContext(), "Search functionality is not available in this version.", Toast.LENGTH_SHORT).show();
+        }
     }
 
-    private void triggerBackgroundRefreshIfNeeded() {
-        if (dataRepository == null) return;
-        final int beforeCount = dataRepository.getTotalEntriesCount();
-        dataRepository.forceRefreshData(new DataRepository.DataCallback() {
-            @Override
-            public void onSuccess(List<Entry> entries) {
-                int afterCount = dataRepository.getTotalEntriesCount();
-                if (afterCount != beforeCount && getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        currentPage = 0;
-                        loadPageData();
-                    });
-                }
-            }
-
-            @Override
-            public void onError(String error) {
-                // Silent fail; keep cached data
-            }
-        });
-    }
 }

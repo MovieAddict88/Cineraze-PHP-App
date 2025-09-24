@@ -1,10 +1,15 @@
 package com.cinecraze.free.models;
 
 import com.google.gson.annotations.SerializedName;
-
 import java.util.List;
 
 public class Episode {
+
+    @SerializedName("id")
+    private int id;
+
+    @SerializedName("type")
+    private String type;
 
     @SerializedName("Episode")
     private Object episode;
@@ -23,6 +28,22 @@ public class Episode {
 
     @SerializedName("Servers")
     private List<Server> servers;
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
 
     public int getEpisode() {
         if (episode instanceof Number) {

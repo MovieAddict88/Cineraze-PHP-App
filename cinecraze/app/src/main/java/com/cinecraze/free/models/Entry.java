@@ -4,27 +4,19 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
-/**
- * Entry model class for movie/show entries
- * 
- * Note: Rating and Year fields can contain mixed data types:
- * - Rating: can be float (8.2), int (8), or String ("TV-Y7")
- * - Year: can be int (2021) or String
- * The getter methods handle type conversion safely.
- */
 public class Entry {
+
+    @SerializedName("id")
+    private int id;
+
+    @SerializedName("type")
+    private String type;
 
     @SerializedName("Title")
     private String title;
 
-    @SerializedName("SubCategory")
-    private String subCategory;
-
-    @SerializedName("MainCategory")
-    private String mainCategory;
-
-    @SerializedName("Country")
-    private String country;
+    // This field will be populated manually after parsing
+    private transient String mainCategory;
 
     @SerializedName("Description")
     private String description;
@@ -38,6 +30,9 @@ public class Entry {
     @SerializedName("Rating")
     private Object rating; // Can be float, int, or String
 
+    @SerializedName("parentalRating")
+    private String parentalRating;
+
     @SerializedName("Duration")
     private String duration;
 
@@ -50,8 +45,21 @@ public class Entry {
     @SerializedName("Seasons")
     private List<Season> seasons;
 
-    @SerializedName("Related")
-    private List<Entry> related;
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
 
     public String getTitle() {
         return title;
@@ -61,28 +69,12 @@ public class Entry {
         this.title = title;
     }
 
-    public String getSubCategory() {
-        return subCategory;
-    }
-
-    public void setSubCategory(String subCategory) {
-        this.subCategory = subCategory;
-    }
-
     public String getMainCategory() {
         return mainCategory;
     }
 
     public void setMainCategory(String mainCategory) {
         this.mainCategory = mainCategory;
-    }
-
-    public String getCountry() {
-        return country;
-    }
-
-    public void setCountry(String country) {
-        this.country = country;
     }
 
     public String getDescription() {
@@ -116,10 +108,10 @@ public class Entry {
             try {
                 return Float.parseFloat((String) rating);
             } catch (NumberFormatException e) {
-                return 0.0f; // Default to 0 if string cannot be parsed
+                return 0.0f;
             }
         }
-        return 0.0f; // Default value
+        return 0.0f;
     }
 
     public String getRatingString() {
@@ -128,11 +120,19 @@ public class Entry {
         } else if (rating instanceof Number) {
             return String.valueOf(rating);
         }
-        return "0"; // Default value
+        return "0";
     }
 
     public void setRating(Object rating) {
         this.rating = rating;
+    }
+
+    public String getParentalRating() {
+        return parentalRating;
+    }
+
+    public void setParentalRating(String parentalRating) {
+        this.parentalRating = parentalRating;
     }
 
     public String getDuration() {
@@ -150,10 +150,10 @@ public class Entry {
             try {
                 return Integer.parseInt((String) year);
             } catch (NumberFormatException e) {
-                return 0; // Default to 0 if string cannot be parsed
+                return 0;
             }
         }
-        return 0; // Default value
+        return 0;
     }
 
     public String getYearString() {
@@ -162,7 +162,7 @@ public class Entry {
         } else if (year instanceof Number) {
             return String.valueOf(year);
         }
-        return "0"; // Default value
+        return "0";
     }
 
     public void setYear(Object year) {
@@ -185,20 +185,7 @@ public class Entry {
         this.seasons = seasons;
     }
 
-    public List<Entry> getRelated() {
-        return related;
-    }
-
-    public void setRelated(List<Entry> related) {
-        this.related = related;
-    }
-
     public String getImageUrl() {
         return poster != null ? poster : thumbnail;
-    }
-
-    public int getId() {
-        // Generate a simple hash-based ID from title and year
-        return (title + getYearString()).hashCode();
     }
 }
