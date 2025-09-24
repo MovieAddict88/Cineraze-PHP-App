@@ -51,14 +51,13 @@ public class DataRepository {
         void onError(String error);
     }
 
-    public interface UpdateCheckCallback {
-        void onUpdateAvailable(PlaylistsVersion newVersion);
-        void onNoUpdate();
+    public interface PaginatedDataCallback {
+        void onSuccess(List<Entry> entries, boolean hasMorePages, int totalCount);
         void onError(String error);
     }
 
-    public interface PaginatedDataCallback {
-        void onSuccess(List<Entry> entries, boolean hasMorePages, int totalCount);
+    public interface ContentCallback {
+        void onSuccess(ApiResponse apiResponse);
         void onError(String error);
     }
 
@@ -81,54 +80,81 @@ public class DataRepository {
         }
     }
 
-    /**
-     * Get playlist data - checks cache first, then fetches from API if needed
-     */
-    public void getPlaylistData(DataCallback callback) {
-        checkForUpdates(new UpdateCheckCallback() {
-            @Override
-            public void onUpdateAvailable(PlaylistsVersion newVersion) {
-                downloadPlaylists(newVersion, callback);
+    private void cacheContent(ApiResponse apiResponse, boolean clearExistingData) {
+        database.runInTransaction(() -> {
+            if (clearExistingData) {
+                database.serverDao().deleteAll();
+                database.episodeDao().deleteAll();
+                database.seasonDao().deleteAll();
+                database.entryDao().deleteAll();
             }
 
-            @Override
-            public void onNoUpdate() {
-                callback.onSuccess(new ArrayList<>());
+            if (apiResponse.getCategories() != null) {
+                for (Category category : apiResponse.getCategories()) {
+                    if (category != null && category.getEntries() != null) {
+                        String mainCategory = category.getMainCategory();
+                        for (Entry entry : category.getEntries()) {
+                            if (entry != null) {
+                                EntryEntity entryEntity = DatabaseUtils.entryToEntity(entry, mainCategory);
+                                long entryId = database.entryDao().insertAndGetId(entryEntity);
+
+                                if (entry.getServers() != null) {
+                                    for (com.cinecraze.free.models.Server server : entry.getServers()) {
+                                        ServerEntity serverEntity = new ServerEntity();
+                                        serverEntity.setName(server.getName());
+                                        serverEntity.setUrl(server.getUrl());
+                                        serverEntity.setEntryId((int) entryId);
+                                        database.serverDao().insert(serverEntity);
+                                    }
+                                }
+
+                                if (entry.getSeasons() != null) {
+                                    for (com.cinecraze.free.models.Season season : entry.getSeasons()) {
+                                        SeasonEntity seasonEntity = new SeasonEntity();
+                                        seasonEntity.setSeasonNumber(season.getSeason());
+                                        seasonEntity.setSeasonPoster(season.getSeasonPoster());
+                                        seasonEntity.setEntryId((int) entryId);
+                                        long seasonId = database.seasonDao().insertAndGetId(seasonEntity);
+
+                                        if (season.getEpisodes() != null) {
+                                            for (com.cinecraze.free.models.Episode episode : season.getEpisodes()) {
+                                                EpisodeEntity episodeEntity = new EpisodeEntity();
+                                                episodeEntity.setEpisodeNumber(episode.getEpisode());
+                                                episodeEntity.setTitle(episode.getTitle());
+                                                episodeEntity.setDuration(episode.getDuration());
+                                                episodeEntity.setDescription(episode.getDescription());
+                                                episodeEntity.setThumbnail(episode.getThumbnail());
+                                                episodeEntity.setSeasonId((int) seasonId);
+                                                long episodeId = database.episodeDao().insertAndGetId(episodeEntity);
+
+                                                if (episode.getServers() != null) {
+                                                    for (com.cinecraze.free.models.Server server : episode.getServers()) {
+                                                        ServerEntity serverEntity = new ServerEntity();
+                                                        serverEntity.setName(server.getName());
+                                                        serverEntity.setUrl(server.getUrl());
+                                                        serverEntity.setEpisodeId((int) episodeId);
+                                                        database.serverDao().insert(serverEntity);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
-            @Override
-            public void onError(String error) {
-                callback.onError(error);
-            }
+            CacheMetadataEntity metadata = new CacheMetadataEntity(
+                    CACHE_KEY_PLAYLIST,
+                    System.currentTimeMillis(),
+                    String.valueOf(apiResponse.getPagination().getPage())
+            );
+            database.cacheMetadataDao().insert(metadata);
         });
     }
 
-    /**
-     * Force refresh data from API (ignores cache)
-     * This method is used for pull-to-refresh functionality
-     */
-    public void forceRefreshData(DataCallback callback) {
-        Log.d(TAG, "Force refreshing data from API");
-        getPlaylistData(callback);
-    }
-
-    /**
-     * Check if data is available in cache and initialize if needed
-     * This method only loads data if cache is empty, otherwise just confirms cache exists
-     */
-    public void ensureDataAvailable(DataCallback callback) {
-        CacheMetadataEntity metadata = database.cacheMetadataDao().getMetadata(CACHE_KEY_PLAYLIST_VERSION);
-
-        if (metadata != null && isCacheValid(metadata.getLastUpdated())) {
-            // Cache exists and is valid - just return success without loading all data
-            Log.d(TAG, "Cache is available and valid - ready for pagination");
-            callback.onSuccess(new ArrayList<>()); // Empty list, pagination will load actual data
-        } else {
-            // No valid cache - need to fetch all data once to populate cache
-            Log.d(TAG, "No valid cache - fetching data to populate cache");
-            getPlaylistData(callback);
-        }
-    }
 
     /**
      * Get paginated data from cache
@@ -185,14 +211,6 @@ public class DataRepository {
             Log.e(TAG, "Error searching with pagination: " + e.getMessage(), e);
             callback.onError("Error searching: " + e.getMessage());
         }
-    }
-
-    /**
-     * Force refresh data from API
-     */
-    public void refreshData(DataCallback callback) {
-        Log.d(TAG, "Force refreshing data from API");
-        getPlaylistData(callback);
     }
 
     /**
@@ -342,192 +360,44 @@ public class DataRepository {
         return cacheAge < expiryTime;
     }
 
-    /**
-     * Load data from local cache
-     */
-    private void loadFromCache(DataCallback callback) {
-        try {
-            List<EntryWithDetails> entities = database.entryDao().getEntriesWithDetails();
-            List<Entry> entries = DatabaseUtils.entitiesToEntries(entities);
-
-            if (!entries.isEmpty()) {
-                callback.onSuccess(entries);
-            } else {
-                // Cache is empty, fetch from API
-                Log.d(TAG, "Cache is empty, fetching from API");
-                getPlaylistData(callback);
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error loading from cache: " + e.getMessage(), e);
-            getPlaylistData(callback);
-        }
-    }
-
-    public void checkForUpdates(UpdateCheckCallback callback) {
-        apiService.getPlaylistsVersion().enqueue(new Callback<PlaylistsVersion>() {
+    public void fetchContent(int page, int limit, String type, String sort, ContentCallback callback) {
+        apiService.getContent(page, limit, type, sort).enqueue(new Callback<ApiResponse>() {
             @Override
-            public void onResponse(Call<PlaylistsVersion> call, Response<PlaylistsVersion> response) {
+            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    PlaylistsVersion playlistsVersion = response.body();
-                    CacheMetadataEntity metadata = database.cacheMetadataDao().getMetadata(CACHE_KEY_PLAYLIST_VERSION);
-                    int localVersion = metadata != null ? Integer.parseInt(metadata.getDataVersion()) : -1;
-
-                    if (playlistsVersion.getVersion() > localVersion) {
-                        callback.onUpdateAvailable(playlistsVersion);
-                    } else {
-                        Log.d(TAG, "No new version found. Using cached data.");
-                        callback.onNoUpdate();
-                    }
+                    callback.onSuccess(response.body());
                 } else {
-                    Log.e(TAG, "Failed to fetch playlist version: " + response.code());
-                    callback.onError("Failed to fetch playlist version: " + response.code());
+                    callback.onError("Failed to fetch content: " + response.code());
                 }
             }
 
             @Override
-            public void onFailure(Call<PlaylistsVersion> call, Throwable t) {
-                Log.e(TAG, "Failed to fetch playlist version", t);
-                callback.onError("Failed to fetch playlist version: " + t.getMessage());
+            public void onFailure(Call<ApiResponse> call, Throwable t) {
+                callback.onError("Failed to fetch content: " + t.getMessage());
             }
         });
     }
 
-    public void downloadPlaylists(PlaylistsVersion playlistsVersion, DataCallback callback) {
-        List<String> playlistUrls = playlistsVersion.getPlaylists();
-        List<Playlist> playlists = Collections.synchronizedList(new ArrayList<>());
-        AtomicInteger counter = new AtomicInteger(playlistUrls.size());
-        AtomicInteger failedCount = new AtomicInteger(0);
-
-        for (String url : playlistUrls) {
-            apiService.getPlaylist(url).enqueue(new Callback<Playlist>() {
+    public void ensureDataAvailable(DataCallback callback) {
+        if (hasValidCache()) {
+            callback.onSuccess(new ArrayList<>());
+        } else {
+            fetchContent(1, DEFAULT_PAGE_SIZE, "all", "newest", new ContentCallback() {
                 @Override
-                public void onResponse(Call<Playlist> call, Response<Playlist> response) {
-                    if (response.isSuccessful() && response.body() != null) {
-                        playlists.add(response.body());
-                    } else {
-                        Log.e(TAG, "Failed to fetch playlist: " + url);
-                        failedCount.incrementAndGet();
-                    }
-                    if (counter.decrementAndGet() == 0) {
-                        handleAllPlaylistsFetched(playlists, playlistsVersion.getVersion(), failedCount.get(), callback);
-                    }
+                public void onSuccess(ApiResponse apiResponse) {
+                    cacheContent(apiResponse, true);
+                    callback.onSuccess(new ArrayList<>());
                 }
 
                 @Override
-                public void onFailure(Call<Playlist> call, Throwable t) {
-                    Log.e(TAG, "Failed to fetch playlist: " + url, t);
-                    failedCount.incrementAndGet();
-                    if (counter.decrementAndGet() == 0) {
-                        handleAllPlaylistsFetched(playlists, playlistsVersion.getVersion(), failedCount.get(), callback);
-                    }
+                public void onError(String error) {
+                    callback.onError(error);
                 }
             });
         }
     }
 
-    private void handleAllPlaylistsFetched(List<Playlist> playlists, int version, int failedCount, DataCallback callback) {
-        mainHandler.post(() -> {
-            if (failedCount > 0) {
-                Log.w(TAG, failedCount + " playlists failed to download.");
-                if (playlists.isEmpty()) {
-                    callback.onError("Failed to download any playlists.");
-                    return;
-                }
-                // Optionally, inform the user about partial data
-            }
-            cachePlaylists(playlists, version);
-            callback.onSuccess(new ArrayList<>());
-        });
-    }
-
     /**
-     * Cache the playlist data to local database
+     * Load data from local cache
      */
-    private void cachePlaylists(List<Playlist> playlists, int version) {
-        database.runInTransaction(() -> {
-            // Clear existing data
-            database.serverDao().deleteAll();
-            database.episodeDao().deleteAll();
-            database.seasonDao().deleteAll();
-            database.entryDao().deleteAll();
-
-            Set<Integer> entryIds = new HashSet<>();
-            int entryCount = 0;
-
-            for (Playlist playlist : playlists) {
-                if (playlist.getCategories() != null) {
-                    for (Category category : playlist.getCategories()) {
-                        if (category != null && category.getEntries() != null) {
-                            String mainCategory = category.getMainCategory();
-                            for (Entry entry : category.getEntries()) {
-                                if (entry != null && entryIds.add(entry.getId())) {
-                                    EntryEntity entryEntity = DatabaseUtils.entryToEntity(entry, mainCategory);
-                                    long entryId = database.entryDao().insertAndGetId(entryEntity);
-                                    entryCount++;
-
-                                    // Insert servers for the entry (movie)
-                                    if (entry.getServers() != null) {
-                                        for (com.cinecraze.free.models.Server server : entry.getServers()) {
-                                            ServerEntity serverEntity = new ServerEntity();
-                                            serverEntity.setName(server.getName());
-                                            serverEntity.setUrl(server.getUrl());
-                                            serverEntity.setLicense(server.getLicense());
-                                            serverEntity.setDrm(server.isDrmProtected());
-                                            serverEntity.setEntryId((int) entryId);
-                                            database.serverDao().insert(serverEntity);
-                                        }
-                                    }
-
-                                    // Insert seasons and episodes for the entry (series)
-                                    if (entry.getSeasons() != null) {
-                                        for (com.cinecraze.free.models.Season season : entry.getSeasons()) {
-                                            SeasonEntity seasonEntity = new SeasonEntity();
-                                            seasonEntity.setSeasonNumber(season.getSeason());
-                                            seasonEntity.setSeasonPoster(season.getSeasonPoster());
-                                            seasonEntity.setEntryId((int) entryId);
-                                            long seasonId = database.seasonDao().insertAndGetId(seasonEntity);
-
-                                            if (season.getEpisodes() != null) {
-                                                for (com.cinecraze.free.models.Episode episode : season.getEpisodes()) {
-                                                    EpisodeEntity episodeEntity = new EpisodeEntity();
-                                                    episodeEntity.setEpisodeNumber(episode.getEpisode());
-                                                    episodeEntity.setTitle(episode.getTitle());
-                                                    episodeEntity.setDuration(episode.getDuration());
-                                                    episodeEntity.setDescription(episode.getDescription());
-                                                    episodeEntity.setThumbnail(episode.getThumbnail());
-                                                    episodeEntity.setSeasonId((int) seasonId);
-                                                    long episodeId = database.episodeDao().insertAndGetId(episodeEntity);
-
-                                                    if (episode.getServers() != null) {
-                                                        for (com.cinecraze.free.models.Server server : episode.getServers()) {
-                                                            ServerEntity serverEntity = new ServerEntity();
-                                                            serverEntity.setName(server.getName());
-                                                            serverEntity.setUrl(server.getUrl());
-                                                            serverEntity.setLicense(server.getLicense());
-                                                            serverEntity.setDrm(server.isDrmProtected());
-                                                            serverEntity.setEpisodeId((int) episodeId);
-                                                            database.serverDao().insert(serverEntity);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            CacheMetadataEntity metadata = new CacheMetadataEntity(
-                    CACHE_KEY_PLAYLIST_VERSION,
-                    System.currentTimeMillis(),
-                    String.valueOf(version)
-            );
-            database.cacheMetadataDao().insert(metadata);
-
-            Log.d(TAG, "Data cached successfully: " + entryCount + " entries");
-        });
-    }
 }

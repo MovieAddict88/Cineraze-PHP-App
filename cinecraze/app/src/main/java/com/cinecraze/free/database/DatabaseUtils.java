@@ -25,16 +25,17 @@ public class DatabaseUtils {
     public static EntryEntity entryToEntity(Entry entry, String mainCategory) {
         EntryEntity entity = new EntryEntity();
         
+        entity.setId(entry.getId());
         entity.setTitle(entry.getTitle());
-        entity.setSubCategory(entry.getSubCategory());
-        entity.setCountry(entry.getCountry());
         entity.setDescription(entry.getDescription());
         entity.setPoster(entry.getPoster());
         entity.setThumbnail(entry.getThumbnail());
-        entity.setRating(entry.getRatingString());
+        entity.setRating(String.valueOf(entry.getRating()));
         entity.setDuration(entry.getDuration());
-        entity.setYear(entry.getYearString());
+        entity.setYear(String.valueOf(entry.getYear()));
         entity.setMainCategory(mainCategory);
+        entity.setContentType(entry.getType());
+        entity.setParentalRating(entry.getParentalRating());
         
         return entity;
     }
@@ -47,16 +48,24 @@ public class DatabaseUtils {
         EntryEntity entity = entityWithDetails.entry;
 
         // Use proper setter methods
+        entry.setId(entity.getId());
         entry.setTitle(entity.getTitle());
-        entry.setSubCategory(entity.getSubCategory());
-        entry.setMainCategory(entity.getMainCategory());
-        entry.setCountry(entity.getCountry());
         entry.setDescription(entity.getDescription());
         entry.setPoster(entity.getPoster());
         entry.setThumbnail(entity.getThumbnail());
-        entry.setRating(entity.getRating());
+        try {
+            entry.setRating(Float.parseFloat(entity.getRating()));
+        } catch (NumberFormatException e) {
+            entry.setRating(0.0f);
+        }
         entry.setDuration(entity.getDuration());
-        entry.setYear(entity.getYear());
+        try {
+            entry.setYear(Integer.parseInt(entity.getYear()));
+        } catch (NumberFormatException e) {
+            entry.setYear(0);
+        }
+        entry.setType(entity.getContentType());
+        entry.setParentalRating(entity.getParentalRating());
 
         // Convert related entities
         List<Server> servers = new ArrayList<>();

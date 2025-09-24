@@ -6,8 +6,14 @@ import java.util.List;
 
 public class Episode {
 
+    @SerializedName("id")
+    private int id;
+
+    @SerializedName("type")
+    private String type;
+
     @SerializedName("Episode")
-    private Object episode;
+    private int episode;
 
     @SerializedName("Title")
     private String title;
@@ -24,33 +30,27 @@ public class Episode {
     @SerializedName("Servers")
     private List<Server> servers;
 
-    public int getEpisode() {
-        if (episode instanceof Number) {
-            return ((Number) episode).intValue();
-        } else if (episode instanceof String) {
-            try {
-                return Integer.parseInt((String) episode);
-            } catch (NumberFormatException e) {
-                return 0;
-            }
-        }
-        return 0;
+    public int getId() {
+        return id;
     }
 
-    public String getEpisodeString() {
-        if (episode instanceof String) {
-            return (String) episode;
-        } else if (episode instanceof Number) {
-            return String.valueOf(((Number) episode).intValue());
-        }
-        return "0";
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public int getEpisode() {
+        return episode;
     }
 
     public void setEpisode(int episode) {
-        this.episode = episode;
-    }
-
-    public void setEpisode(Object episode) {
         this.episode = episode;
     }
 

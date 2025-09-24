@@ -40,11 +40,6 @@ public abstract class BaseFragment extends Fragment {
     protected CarouselAdapter carouselAdapter;
     protected FloatingActionButton fabViewMode;
     
-    // Floating Pagination Layout
-    protected LinearLayout floatingPaginationLayout;
-    protected ImageView btnPreviousPage;
-    protected ImageView btnNextPage;
-    
     // Filter UI elements
     protected MaterialButton btnGenreFilter;
     protected MaterialButton btnCountryFilter;
@@ -99,7 +94,7 @@ public abstract class BaseFragment extends Fragment {
             movieAdapter = new MovieAdapter(getContext(), currentPageEntries, isGridView);
             updateViewMode();
             
-            // Add scroll listener to show pagination only when scrolling to bottom and to hide/show bottom navigation
+            // Add scroll listener for lazy loading and to hide/show bottom navigation
             recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
                 private int lastDy = 0;
 
@@ -107,16 +102,19 @@ public abstract class BaseFragment extends Fragment {
                 public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                     super.onScrolled(recyclerView, dx, dy);
 
-                    // Check if user has scrolled to bottom and there are 20+ items
-                    if (!recyclerView.canScrollVertically(1) && totalCount > 20) {
-                        // User has scrolled to bottom and there are more than 20 items
-                        if (floatingPaginationLayout != null) {
-                            floatingPaginationLayout.setVisibility(View.VISIBLE);
-                        }
-                    } else {
-                        // Hide pagination when not at bottom
-                        if (floatingPaginationLayout != null) {
-                            floatingPaginationLayout.setVisibility(View.GONE);
+                    LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                    if (layoutManager != null) {
+                        int visibleItemCount = layoutManager.getChildCount();
+                        int totalItemCount = layoutManager.getItemCount();
+                        int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+                        if (!isLoading && hasMorePages) {
+                            if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                                    && firstVisibleItemPosition >= 0
+                                    && totalItemCount >= pageSize) {
+                                currentPage++;
+                                loadPageData();
+                            }
                         }
                     }
 
@@ -178,26 +176,6 @@ public abstract class BaseFragment extends Fragment {
             fabViewMode.setOnClickListener(v -> {
                 isGridView = !isGridView;
                 updateViewMode();
-            });
-        }
-    }
-
-    protected void setupPagination() {
-        if (btnPreviousPage != null) {
-            btnPreviousPage.setOnClickListener(v -> {
-                if (currentPage > 0) {
-                    currentPage--;
-                    loadPageData();
-                }
-            });
-        }
-
-        if (btnNextPage != null) {
-            btnNextPage.setOnClickListener(v -> {
-                if (hasMorePages) {
-                    currentPage++;
-                    loadPageData();
-                }
             });
         }
     }
@@ -297,12 +275,11 @@ public abstract class BaseFragment extends Fragment {
                 currentSearchQuery = "";
                 // Force fetch latest data from API, then reload the current page from cache
                 if (dataRepository != null) {
-                    dataRepository.forceRefreshData(new DataRepository.DataCallback() {
+                    dataRepository.fetchContent(1, pageSize, getCategory(), "newest", new DataRepository.ContentCallback() {
                         @Override
-                        public void onSuccess(List<Entry> entries) {
+                        public void onSuccess(com.cinecraze.free.models.ApiResponse apiResponse) {
                             // After cache is updated, reload paginated data
                             loadPageData();
-                            // updatePageData() will stop the refreshing indicator
                         }
 
                         @Override
@@ -334,8 +311,6 @@ public abstract class BaseFragment extends Fragment {
             public void onSuccess(List<Entry> entries) {
                 loadPageData();
                 populateFilterSpinners(); // Populate filter spinners after data is loaded
-                // After initial load, check in background if newer data exists and update UI if so
-                triggerBackgroundRefreshIfNeeded();
             }
             
             @Override
@@ -467,99 +442,6 @@ public abstract class BaseFragment extends Fragment {
             Toast.makeText(getContext(), "Failed to load page: " + error, Toast.LENGTH_SHORT).show();
         });
     }
-    
-    protected void loadPageDataOld() {
-        if (getActivity() == null) return;
-        
-        new Thread(() -> {
-            try {
-                List<Entry> allEntries;
-                
-                if (currentSearchQuery.isEmpty()) {
-                    if (currentCategory.isEmpty()) {
-                        allEntries = dataRepository.getAllCachedEntries();
-                    } else {
-                        allEntries = dataRepository.getEntriesByCategory(currentCategory);
-                    }
-                } else {
-                    allEntries = dataRepository.searchByTitle(currentSearchQuery);
-                }
-                
-                // Calculate pagination
-                final int totalItems = allEntries.size();
-                final int startIndex = currentPage * pageSize;
-                final int endIndex = Math.min(startIndex + pageSize, totalItems);
-                
-                final List<Entry> pageEntries = new ArrayList<>();
-                if (startIndex < totalItems) {
-                    pageEntries.addAll(allEntries.subList(startIndex, endIndex));
-                }
-                
-                final boolean hasMore = endIndex < totalItems;
-                
-                // Prepare carousel data if needed
-                final List<Entry> carouselEntries = new ArrayList<>();
-                if (currentPage == 0 && !pageEntries.isEmpty()) {
-                    int carouselSize = Math.min(5, pageEntries.size());
-                    for (int i = 0; i < carouselSize; i++) {
-                        carouselEntries.add(pageEntries.get(i));
-                    }
-                }
-                
-                // Update UI on main thread
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        currentPageEntries.clear();
-                        currentPageEntries.addAll(pageEntries);
-                        if (movieAdapter != null) {
-                            movieAdapter.notifyDataSetChanged();
-                        }
-                        
-                        totalCount = totalItems;
-                        hasMorePages = hasMore;
-                        updatePaginationButtons();
-                        
-                        if (swipeRefreshLayout != null) {
-                            swipeRefreshLayout.setRefreshing(false);
-                        }
-                        
-                        // Load carousel data if this is the first page
-                        if (currentPage == 0 && carouselAdapter != null && !carouselEntries.isEmpty()) {
-                            carouselAdapter.setEntries(carouselEntries);
-                            carouselAdapter.notifyDataSetChanged();
-                        }
-                    });
-                }
-            } catch (Exception e) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        if (swipeRefreshLayout != null) {
-                            swipeRefreshLayout.setRefreshing(false);
-                        }
-                        Toast.makeText(getContext(), "Error loading data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
-                }
-            }
-        }).start();
-    }
-
-    protected void updatePaginationUI() {
-        // Only update button states, not visibility (visibility is controlled by scroll listener)
-        if (btnPreviousPage != null && btnNextPage != null) {
-            boolean canGoPrevious = currentPage > 0 && !isLoading;
-            boolean canGoNext = hasMorePages && !isLoading && ((currentPage + 1) * pageSize < totalCount);
-            
-            btnPreviousPage.setEnabled(canGoPrevious);
-            btnPreviousPage.setAlpha(canGoPrevious ? 1.0f : 0.3f);
-            
-            btnNextPage.setEnabled(canGoNext);
-            btnNextPage.setAlpha(canGoNext ? 1.0f : 0.3f);
-        }
-    }
-    
-    protected void updatePaginationButtons() {
-        updatePaginationUI();
-    }
 
     protected void filterByQuery(String query) {
         currentSearchQuery = query;
@@ -570,27 +452,5 @@ public abstract class BaseFragment extends Fragment {
     // Public method to be called from MainActivity for search
     public void performSearch(String query) {
         filterByQuery(query);
-    }
-
-    private void triggerBackgroundRefreshIfNeeded() {
-        if (dataRepository == null) return;
-        final int beforeCount = dataRepository.getTotalEntriesCount();
-        dataRepository.forceRefreshData(new DataRepository.DataCallback() {
-            @Override
-            public void onSuccess(List<Entry> entries) {
-                int afterCount = dataRepository.getTotalEntriesCount();
-                if (afterCount != beforeCount && getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        currentPage = 0;
-                        loadPageData();
-                    });
-                }
-            }
-
-            @Override
-            public void onError(String error) {
-                // Silent fail; keep cached data
-            }
-        });
     }
 }

@@ -7,17 +7,11 @@ import androidx.room.ColumnInfo;
 @Entity(tableName = "entries")
 public class EntryEntity {
     
-    @PrimaryKey(autoGenerate = true)
+    @PrimaryKey
     private int id;
     
     @ColumnInfo(name = "title")
     private String title;
-    
-    @ColumnInfo(name = "sub_category")
-    private String subCategory;
-    
-    @ColumnInfo(name = "country")
-    private String country;
     
     @ColumnInfo(name = "description")
     private String description;
@@ -39,6 +33,12 @@ public class EntryEntity {
     
     @ColumnInfo(name = "main_category")
     private String mainCategory; // To associate with category
+
+    @ColumnInfo(name = "content_type")
+    private String contentType;
+
+    @ColumnInfo(name = "parental_rating")
+    private String parentalRating;
     
     // Constructor
     public EntryEntity() {}
@@ -49,12 +49,6 @@ public class EntryEntity {
     
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
-    
-    public String getSubCategory() { return subCategory; }
-    public void setSubCategory(String subCategory) { this.subCategory = subCategory; }
-    
-    public String getCountry() { return country; }
-    public void setCountry(String country) { this.country = country; }
     
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
@@ -76,4 +70,10 @@ public class EntryEntity {
     
     public String getMainCategory() { return mainCategory; }
     public void setMainCategory(String mainCategory) { this.mainCategory = mainCategory; }
+
+    public String getContentType() { return contentType; }
+    public void setContentType(String contentType) { this.contentType = contentType; }
+
+    public String getParentalRating() { return parentalRating; }
+    public void setParentalRating(String parentalRating) { this.parentalRating = parentalRating; }
 }
