@@ -52,7 +52,7 @@ public class DataRepository {
     }
 
     public interface ContentCallback {
-        void onSuccess(ApiResponse apiResponse);
+        void onSuccess(com.google.gson.JsonObject apiResponse);
         void onError(String error);
     }
 
@@ -84,8 +84,13 @@ public class DataRepository {
                 database.entryDao().deleteAll();
             }
 
-            if (apiResponse.getCategories() != null) {
-                for (Category category : apiResponse.getCategories()) {
+            com.google.gson.Gson gson = new com.google.gson.Gson();
+            com.google.gson.JsonElement categoriesElement = apiResponse.get("categories");
+            if (categoriesElement != null && categoriesElement.isJsonArray()) {
+                java.lang.reflect.Type categoryListType = new com.google.gson.reflect.TypeToken<ArrayList<Category>>() {}.getType();
+                List<Category> categories = gson.fromJson(categoriesElement, categoryListType);
+
+                for (Category category : categories) {
                     if (category != null && category.getEntries() != null) {
                         String mainCategory = category.getMainCategory();
                         for (Entry entry : category.getEntries()) {
@@ -141,12 +146,16 @@ public class DataRepository {
                 }
             }
 
-            CacheMetadataEntity metadata = new CacheMetadataEntity(
-                    CACHE_KEY_PLAYLIST,
-                    System.currentTimeMillis(),
-                    String.valueOf(apiResponse.getPagination().getPage())
-            );
-            database.cacheMetadataDao().insert(metadata);
+            com.google.gson.JsonElement paginationElement = apiResponse.get("pagination");
+            if (paginationElement != null && paginationElement.isJsonObject()) {
+                com.cinecraze.free.models.Pagination pagination = gson.fromJson(paginationElement, com.cinecraze.free.models.Pagination.class);
+                CacheMetadataEntity metadata = new CacheMetadataEntity(
+                        CACHE_KEY_PLAYLIST,
+                        System.currentTimeMillis(),
+                        String.valueOf(pagination.getPage())
+                );
+                database.cacheMetadataDao().insert(metadata);
+            }
         });
     }
 
@@ -290,9 +299,9 @@ public class DataRepository {
     }
 
     public void fetchContent(int page, int limit, String type, String sort, ContentCallback callback) {
-        apiService.getContent(page, limit, type, sort).enqueue(new Callback<ApiResponse>() {
+        apiService.getContent(page, limit, type, sort).enqueue(new Callback<com.google.gson.JsonObject>() {
             @Override
-            public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+            public void onResponse(Call<com.google.gson.JsonObject> call, Response<com.google.gson.JsonObject> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onSuccess(response.body());
                 } else {
@@ -301,7 +310,7 @@ public class DataRepository {
             }
 
             @Override
-            public void onFailure(Call<ApiResponse> call, Throwable t) {
+            public void onFailure(Call<com.google.gson.JsonObject> call, Throwable t) {
                 callback.onError("Failed to fetch content: " + t.getMessage());
             }
         });
@@ -313,8 +322,8 @@ public class DataRepository {
         } else {
             fetchContent(1, DEFAULT_PAGE_SIZE, "all", "newest", new ContentCallback() {
                 @Override
-                public void onSuccess(ApiResponse apiResponse) {
-                    cacheContent(apiResponse, true);
+                public void onSuccess(com.google.gson.JsonObject apiResponse) {
+                    // cacheContent(apiResponse, true);
                     callback.onSuccess(new ArrayList<>());
                 }
 

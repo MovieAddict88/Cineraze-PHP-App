@@ -230,7 +230,8 @@ public abstract class BaseFragment extends Fragment {
                 if (dataRepository != null) {
                     dataRepository.fetchContent(1, pageSize, getCategory(), "newest", new DataRepository.ContentCallback() {
                         @Override
-                        public void onSuccess(com.cinecraze.free.models.ApiResponse apiResponse) {
+                        public void onSuccess(com.google.gson.JsonObject apiResponse) {
+                            Log.d("BaseFragment", "API Response: " + apiResponse.toString());
                             // After cache is updated, reload paginated data
                             loadPageData();
                         }

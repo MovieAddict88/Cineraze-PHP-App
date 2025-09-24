@@ -3,6 +3,11 @@ package com.cinecraze.free.models;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
+package com.cinecraze.free.models;
+
+import com.google.gson.annotations.SerializedName;
+import java.util.List;
+
 public class ApiResponse {
 
     @SerializedName("pagination")
