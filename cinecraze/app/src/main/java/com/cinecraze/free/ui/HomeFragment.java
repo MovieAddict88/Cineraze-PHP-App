@@ -29,14 +29,6 @@ public class HomeFragment extends BaseFragment {
         carouselViewPager = view.findViewById(R.id.carousel_viewpager);
         fabViewMode = view.findViewById(R.id.fab_view_mode);
         
-        // Floating Pagination Layout
-        floatingPaginationLayout = view.findViewById(R.id.floating_pagination_layout);
-        btnPreviousPage = view.findViewById(R.id.btn_previous_page);
-        btnNextPage = view.findViewById(R.id.btn_next_page);
-        
-        // Filter UI elements
-        btnGenreFilter = view.findViewById(R.id.btn_genre_filter);
-        btnCountryFilter = view.findViewById(R.id.btn_country_filter);
         btnYearFilter = view.findViewById(R.id.btn_year_filter);
     }
 
@@ -45,20 +37,6 @@ public class HomeFragment extends BaseFragment {
         return ""; // Empty string for all categories (Home shows everything)
     }
     
-    @Override
-    public void onViewCreated(@NonNull android.view.View view, @Nullable android.os.Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        // Ensure filters are visible and working in Home fragment
-        if (btnGenreFilter != null) {
-            btnGenreFilter.setVisibility(android.view.View.VISIBLE);
-        }
-        if (btnCountryFilter != null) {
-            btnCountryFilter.setVisibility(android.view.View.VISIBLE);
-        }
-        if (btnYearFilter != null) {
-            btnYearFilter.setVisibility(android.view.View.VISIBLE);
-        }
-    }
 
     @Override
     protected int getLayoutId() {

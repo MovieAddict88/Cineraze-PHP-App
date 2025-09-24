@@ -17,7 +17,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import androidx.appcompat.app.AlertDialog;
 
 import com.cinecraze.free.models.Entry;
-import com.cinecraze.free.models.PlaylistsVersion;
 import com.cinecraze.free.net.ApiService;
 import com.cinecraze.free.net.RetrofitClient;
 import com.cinecraze.free.repository.DataRepository;
@@ -77,8 +76,6 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
     private String currentCategory = "";
     private String currentSearchQuery = "";
     private boolean isLoading = false;
-
-    private AlertDialog downloadingDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -298,13 +295,6 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
         container.addView(progressBar);
         container.addView(message);
 
-        downloadingDialog = new AlertDialog.Builder(this)
-            .setTitle("Downloading")
-            .setView(container)
-            .setCancelable(false)
-            .create();
-        downloadingDialog.setCanceledOnTouchOutside(false);
-        downloadingDialog.show();
     }
 
     /**
@@ -313,50 +303,9 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
     private void loadInitialDataFast() {
         Log.d("FastPaginatedMainActivity", "Checking for updates on startup");
         findViewById(R.id.progress_bar).setVisibility(View.VISIBLE);
-        checkForUpdatesAndPrompt();
-    }
-
-    private void checkForUpdatesAndPrompt() {
-        dataRepository.checkForUpdates(new DataRepository.UpdateCheckCallback() {
+        dataRepository.ensureDataAvailable(new DataRepository.DataCallback() {
             @Override
-            public void onUpdateAvailable(PlaylistsVersion newVersion) {
-                new AlertDialog.Builder(FastPaginatedMainActivity.this)
-                    .setTitle("Update Available")
-                    .setMessage("A new content update is available. Do you want to download it now?")
-                    .setPositiveButton("Download", (dialog, which) -> {
-                        showDownloadingDialog(-1L);
-                        dataRepository.downloadPlaylists(newVersion, new DataRepository.DataCallback() {
-                            @Override
-                            public void onSuccess(List<Entry> entries) {
-                                if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                    downloadingDialog.dismiss();
-                                }
-                                Toast.makeText(FastPaginatedMainActivity.this, "Update complete!", Toast.LENGTH_SHORT).show();
-                                loadFirstPageOnly();
-                                setupCarouselFast();
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                    downloadingDialog.dismiss();
-                                }
-                                Toast.makeText(FastPaginatedMainActivity.this, "Update failed: " + error, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    })
-                    .setNegativeButton("Later", (dialog, which) -> {
-                        Toast.makeText(FastPaginatedMainActivity.this, "Using cached data. Update will be available next time.", Toast.LENGTH_SHORT).show();
-                        loadFirstPageOnly();
-                        setupCarouselFast();
-                    })
-                    .setCancelable(false)
-                    .show();
-            }
-
-            @Override
-            public void onNoUpdate() {
-                Log.d("FastPaginatedMainActivity", "No update needed. Loading from cache.");
+            public void onSuccess(List<Entry> entries) {
                 findViewById(R.id.progress_bar).setVisibility(View.GONE);
                 loadFirstPageOnly();
                 setupCarouselFast();
@@ -364,14 +313,12 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
 
             @Override
             public void onError(String error) {
-                Log.e("FastPaginatedMainActivity", "Error checking for updates: " + error);
-                Toast.makeText(FastPaginatedMainActivity.this, "Could not check for updates. Using cached data.", Toast.LENGTH_LONG).show();
                 findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                loadFirstPageOnly();
-                setupCarouselFast();
+                Toast.makeText(FastPaginatedMainActivity.this, "Failed to initialize: " + error, Toast.LENGTH_LONG).show();
             }
         });
     }
+
 
     /**
      * Load carousel with only 5 items - no bulk loading

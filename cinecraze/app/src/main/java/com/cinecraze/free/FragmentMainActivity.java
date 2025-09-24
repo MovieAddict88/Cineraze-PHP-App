@@ -17,7 +17,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import androidx.appcompat.app.AlertDialog;
 
 import com.cinecraze.free.R;
-import com.cinecraze.free.models.PlaylistsVersion;
 import com.cinecraze.free.ui.MainPagerAdapter;
 import com.cinecraze.free.repository.DataRepository;
 import com.cinecraze.free.net.ApiService;
@@ -75,8 +74,7 @@ public class FragmentMainActivity extends AppCompatActivity {
 
         initializeViews();
 
-        // Check for updates on startup
-        checkForUpdatesAndPrompt();
+        startFragments();
     }
 
     private void startFragments() {
@@ -86,94 +84,7 @@ public class FragmentMainActivity extends AppCompatActivity {
         applyInitialTabFromIntent();
     }
 
-    private void checkForUpdatesAndPrompt() {
-        dataRepository.checkForUpdates(new DataRepository.UpdateCheckCallback() {
-            @Override
-            public void onUpdateAvailable(PlaylistsVersion newVersion) {
-                new AlertDialog.Builder(FragmentMainActivity.this)
-                    .setTitle("Update Available")
-                    .setMessage("A new content update is available. Do you want to download it now?")
-                    .setPositiveButton("Download", (dialog, which) -> {
-                        showDownloadingDialog();
-                        dataRepository.downloadPlaylists(newVersion, new DataRepository.DataCallback() {
-                            @Override
-                            public void onSuccess(java.util.List<com.cinecraze.free.models.Entry> entries) {
-                                runOnUiThread(() -> {
-                                    if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                        downloadingDialog.dismiss();
-                                    }
-                                    android.widget.Toast.makeText(FragmentMainActivity.this, "Update complete!", android.widget.Toast.LENGTH_SHORT).show();
-                                    startFragments();
-                                });
-                            }
 
-                            @Override
-                            public void onError(String error) {
-                                runOnUiThread(() -> {
-                                    if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                        downloadingDialog.dismiss();
-                                    }
-                                    android.widget.Toast.makeText(FragmentMainActivity.this, "Update failed: " + error, android.widget.Toast.LENGTH_LONG).show();
-                                    startFragments(); // Start with cached data on failure
-                                });
-                            }
-                        });
-                    })
-                    .setNegativeButton("Later", (dialog, which) -> {
-                        android.widget.Toast.makeText(FragmentMainActivity.this, "Using cached data. Update will be available next time.", android.widget.Toast.LENGTH_SHORT).show();
-                        startFragments();
-                    })
-                    .setCancelable(false)
-                    .show();
-            }
-
-            @Override
-            public void onNoUpdate() {
-                startFragments();
-            }
-
-            @Override
-            public void onError(String error) {
-                runOnUiThread(() -> {
-                    android.widget.Toast.makeText(FragmentMainActivity.this, "Could not check for updates. Using cached data.", android.widget.Toast.LENGTH_LONG).show();
-                    startFragments();
-                });
-            }
-        });
-    }
-
-    private AlertDialog downloadingDialog;
-
-    private void showDownloadingDialog() {
-        android.widget.LinearLayout container = new android.widget.LinearLayout(this);
-        container.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        int padding = (int) (16 * getResources().getDisplayMetrics().density);
-        container.setPadding(padding, padding, padding, padding);
-
-        android.widget.ProgressBar progressBar = new android.widget.ProgressBar(this);
-        progressBar.setIndeterminate(true);
-        android.widget.LinearLayout.LayoutParams pbParams = new android.widget.LinearLayout.LayoutParams(
-            (int) (24 * getResources().getDisplayMetrics().density),
-            (int) (24 * getResources().getDisplayMetrics().density)
-        );
-        pbParams.setMargins(0, 0, padding, 0);
-        progressBar.setLayoutParams(pbParams);
-
-        android.widget.TextView message = new android.widget.TextView(this);
-        message.setText("Downloading data...\nPlease wait, this may take a moment.");
-        message.setTextSize(14);
-
-        container.addView(progressBar);
-        container.addView(message);
-
-        downloadingDialog = new AlertDialog.Builder(this)
-            .setTitle("Downloading")
-            .setView(container)
-            .setCancelable(false)
-            .create();
-        downloadingDialog.setCanceledOnTouchOutside(false);
-        downloadingDialog.show();
-    }
 
     private void setupStatusBar() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
