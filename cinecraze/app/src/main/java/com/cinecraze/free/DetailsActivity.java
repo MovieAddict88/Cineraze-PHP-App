@@ -178,9 +178,7 @@ public class DetailsActivity extends AppCompatActivity {
             setupServerSelector();
 
             // Setup TV Series components ONLY if it's a TV series
-            if ("TV Series".equalsIgnoreCase(currentEntry.getMainCategory()) ||
-                "Series".equalsIgnoreCase(currentEntry.getMainCategory()) ||
-                "TV".equalsIgnoreCase(currentEntry.getMainCategory())) {
+            if ("series".equalsIgnoreCase(currentEntry.getType())) {
                 // For large series, seasons might be loaded asynchronously
                 // So we'll setup TV components after data loading
                 setupTVSeriesComponents();
@@ -189,24 +187,24 @@ public class DetailsActivity extends AppCompatActivity {
                 // Users should select episodes from the seasons section
                 if (floatingActionButtonPlay != null) {
                     floatingActionButtonPlay.setVisibility(View.GONE);
-                    Log.d(TAG, "FLOATING PLAY BUTTON HIDDEN for TV series: " + currentEntry.getMainCategory());
+                    Log.d(TAG, "FLOATING PLAY BUTTON HIDDEN for TV series: " + currentEntry.getType());
                 } else {
                     Log.d(TAG, "FloatingActionButton is null!");
                 }
-                Log.d(TAG, "TV Series detected - play button should be hidden: " + currentEntry.getMainCategory());
+                Log.d(TAG, "TV Series detected - play button should be hidden: " + currentEntry.getType());
             } else {
                 // Hide season selector for movies, live TV, and other content
                 if (seriesSeasonsContainer != null) {
                     seriesSeasonsContainer.setVisibility(View.GONE);
-                    Log.d(TAG, "SEASONS section hidden for: " + currentEntry.getMainCategory());
+                    Log.d(TAG, "SEASONS section hidden for: " + currentEntry.getType());
                 }
 
                 // Show floating play button for movies and live TV
                 if (floatingActionButtonPlay != null) {
                     floatingActionButtonPlay.setVisibility(View.VISIBLE);
-                    Log.d(TAG, "Floating play button shown for: " + currentEntry.getMainCategory());
+                    Log.d(TAG, "Floating play button shown for: " + currentEntry.getType());
                 }
-                Log.d(TAG, "Non-TV series content detected: " + currentEntry.getMainCategory());
+                Log.d(TAG, "Non-TV series content detected: " + currentEntry.getType());
             }
 
             // Setup related content
@@ -898,9 +896,6 @@ public class DetailsActivity extends AppCompatActivity {
                 // Create a lightweight entry with only essential data
                 Entry lightweightEntry = new Entry();
                 lightweightEntry.setTitle(entry.getTitle());
-                lightweightEntry.setSubCategory(entry.getSubCategory());
-                lightweightEntry.setMainCategory(entry.getMainCategory());
-                lightweightEntry.setCountry(entry.getCountry());
                 lightweightEntry.setDescription(entry.getDescription());
                 lightweightEntry.setPoster(entry.getPoster());
                 lightweightEntry.setThumbnail(entry.getThumbnail());
@@ -1196,10 +1191,7 @@ public class DetailsActivity extends AppCompatActivity {
         DataRepository dataRepository = new DataRepository(this);
 
         // Get related content based on country and category
-        dataRepository.getPaginatedFilteredData(
-            null, // No genre filter (Entry doesn't have getGenre method)
-            currentEntry.getCountry(), // Filter by same country
-            null, // No year filter
+        dataRepository.getPaginatedData(
             0, // First page
             10, // Show 10 related items
             new DataRepository.PaginatedDataCallback() {

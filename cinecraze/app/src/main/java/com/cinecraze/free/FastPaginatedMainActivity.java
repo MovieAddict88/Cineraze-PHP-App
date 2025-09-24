@@ -295,13 +295,6 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
         container.addView(progressBar);
         container.addView(message);
 
-        downloadingDialog = new AlertDialog.Builder(this)
-            .setTitle("Downloading")
-            .setView(container)
-            .setCancelable(false)
-            .create();
-        downloadingDialog.setCanceledOnTouchOutside(false);
-        downloadingDialog.show();
     }
 
     /**

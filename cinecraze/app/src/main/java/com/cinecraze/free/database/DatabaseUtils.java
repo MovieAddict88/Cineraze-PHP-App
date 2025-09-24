@@ -118,7 +118,6 @@ public class DatabaseUtils {
             }
         }
         entry.setSeasons(seasons);
-        entry.setRelated(new ArrayList<>()); // Related entries are not handled in this version
 
         return entry;
     }

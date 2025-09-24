@@ -28,14 +28,6 @@ public class MovieFragment extends BaseFragment {
         swipeRefreshLayout = view.findViewById(R.id.swipe_refresh_layout);
         fabViewMode = view.findViewById(R.id.fab_view_mode);
         
-        // Floating Pagination Layout
-        floatingPaginationLayout = view.findViewById(R.id.floating_pagination_layout);
-        btnPreviousPage = view.findViewById(R.id.btn_previous_page);
-        btnNextPage = view.findViewById(R.id.btn_next_page);
-        
-        // Filter UI elements
-        btnGenreFilter = view.findViewById(R.id.btn_genre_filter);
-        btnCountryFilter = view.findViewById(R.id.btn_country_filter);
         btnYearFilter = view.findViewById(R.id.btn_year_filter);
     }
 

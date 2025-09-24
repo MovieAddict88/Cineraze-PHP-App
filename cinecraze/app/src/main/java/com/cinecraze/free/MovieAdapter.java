@@ -72,23 +72,10 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
         if (holder.year != null) {
             holder.year.setText(String.valueOf(entry.getYear()));
         }
-        if (holder.country != null) {
-            holder.country.setText(entry.getCountry());
-        }
         if (holder.duration != null) {
             holder.duration.setText(entry.getDuration());
         }
         
-        // Set category badge (on poster) - Genre badge
-        if (holder.categoryBadge != null) {
-            setCategoryBadge(holder.categoryBadge, entry.getSubCategory());
-        }
-        
-        // Set type badge (below title) - Content type badge
-        if (holder.typeBadge != null) {
-            setTypeBadge(holder.typeBadge, entry.getMainCategory());
-        }
-
         holder.itemView.setOnClickListener(v -> {
             try {
                 Intent intent = new Intent(context, DetailsActivity.class);
@@ -110,9 +97,6 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
                     // Create a lightweight entry with only essential data
                     Entry lightweightEntry = new Entry();
                     lightweightEntry.setTitle(entry.getTitle());
-                    lightweightEntry.setSubCategory(entry.getSubCategory());
-                    lightweightEntry.setMainCategory(entry.getMainCategory());
-                    lightweightEntry.setCountry(entry.getCountry());
                     lightweightEntry.setDescription(entry.getDescription());
                     lightweightEntry.setPoster(entry.getPoster());
                     lightweightEntry.setThumbnail(entry.getThumbnail());
@@ -143,93 +127,13 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
         return entryList.size();
     }
 
-    private void setCategoryBadge(TextView badge, String category) {
-        String badgeText;
-        int badgeColor;
-        
-        if (category == null || category.trim().isEmpty()) {
-            category = "Other";
-        }
-        
-        // For genre badge, use the category as-is and apply genre-specific colors
-        badgeText = category.toUpperCase();
-        if (badgeText.length() > 8) {
-            badgeText = badgeText.substring(0, 8);
-        }
-        
-        // Apply genre-specific colors
-        if (category.toLowerCase().contains("action")) {
-            badgeColor = ContextCompat.getColor(context, R.color.badge_live_tv); // Red for action
-        } else if (category.toLowerCase().contains("drama")) {
-            badgeColor = ContextCompat.getColor(context, R.color.badge_series); // Green for drama
-        } else if (category.toLowerCase().contains("comedy")) {
-            badgeColor = ContextCompat.getColor(context, R.color.badge_movies); // Light blue for comedy
-        } else if (category.toLowerCase().contains("horror")) {
-            badgeColor = ContextCompat.getColor(context, R.color.badge_live_tv); // Red for horror
-        } else if (category.toLowerCase().contains("romance")) {
-            badgeColor = ContextCompat.getColor(context, R.color.badge_series); // Green for romance
-        } else {
-            badgeColor = ContextCompat.getColor(context, R.color.badge_default); // Default orange
-        }
-        
-        badge.setText(badgeText);
-        
-        // Create colored background
-        GradientDrawable background = new GradientDrawable();
-        background.setShape(GradientDrawable.RECTANGLE);
-        background.setColor(badgeColor);
-        background.setCornerRadius(4 * context.getResources().getDisplayMetrics().density);
-        badge.setBackground(background);
-    }
-    
-    private void setTypeBadge(TextView badge, String category) {
-        String badgeText;
-        int badgeColor;
-        
-        if (category == null || category.trim().isEmpty()) {
-            category = "Other";
-        }
-        
-        // Determine badge text and color based on content type from mainCategory
-        String lowerCategory = category.toLowerCase();
-        
-        if (lowerCategory.contains("live")) {
-            badgeText = "LIVE";
-            badgeColor = ContextCompat.getColor(context, R.color.type_badge_live); // Red
-        } else if (lowerCategory.contains("movie") || lowerCategory.contains("film")) {
-            badgeText = "MOVIE";
-            badgeColor = ContextCompat.getColor(context, R.color.type_badge_movies); // Light blue
-        } else if (lowerCategory.contains("series") || lowerCategory.contains("tv")) {
-            badgeText = "SERIES";
-            badgeColor = ContextCompat.getColor(context, R.color.type_badge_series); // Green
-        } else {
-            badgeText = category.toUpperCase();
-            if (badgeText.length() > 6) {
-                badgeText = badgeText.substring(0, 6);
-            }
-            badgeColor = ContextCompat.getColor(context, R.color.type_badge_default); // Orange
-        }
-        
-        badge.setText(badgeText);
-        
-        // Create colored background
-        GradientDrawable background = new GradientDrawable();
-        background.setShape(GradientDrawable.RECTANGLE);
-        background.setColor(badgeColor);
-        background.setCornerRadius(3 * context.getResources().getDisplayMetrics().density);
-        badge.setBackground(background);
-    }
-
     public class ViewHolder extends RecyclerView.ViewHolder {
         ImageView poster;
         TextView title;
         RatingBar rating;
         TextView description;
         TextView year;
-        TextView country;
         TextView duration;
-        TextView categoryBadge;
-        TextView typeBadge;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -238,10 +142,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
             rating = itemView.findViewById(R.id.rating);
             description = itemView.findViewById(R.id.description);
             year = itemView.findViewById(R.id.year);
-            country = itemView.findViewById(R.id.country);
             duration = itemView.findViewById(R.id.duration);
-            categoryBadge = itemView.findViewById(R.id.category_badge);
-            typeBadge = itemView.findViewById(R.id.type_badge);
         }
     }
 }

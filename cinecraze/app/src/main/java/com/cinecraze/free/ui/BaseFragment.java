@@ -73,7 +73,6 @@ public abstract class BaseFragment extends Fragment {
         setupRecyclerView();
         setupCarousel();
         setupViewSwitch();
-        setupPagination();
         setupFilters();
         setupSwipeRefresh();
         loadInitialData();
@@ -350,7 +349,6 @@ public abstract class BaseFragment extends Fragment {
             if (movieAdapter != null) {
                 movieAdapter.setEntryList(currentPageEntries);
             }
-            updatePaginationUI();
             
             if (swipeRefreshLayout != null) {
                 swipeRefreshLayout.setRefreshing(false);
