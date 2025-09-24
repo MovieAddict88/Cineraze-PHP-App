@@ -247,45 +247,6 @@ public class DataRepository {
         return database.entryDao().getEntriesCount();
     }
 
-    /**
-     * Get unique genres from cached data
-     */
-    public List<String> getUniqueGenres() {
-        try {
-            List<String> genres = database.entryDao().getUniqueGenres();
-            // Filter out null and empty values
-            List<String> filteredGenres = new ArrayList<>();
-            for (String genre : genres) {
-                if (genre != null && !genre.trim().isEmpty() && !genre.equalsIgnoreCase("null")) {
-                    filteredGenres.add(genre.trim());
-                }
-            }
-            return filteredGenres;
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting unique genres: " + e.getMessage(), e);
-            return new ArrayList<>();
-        }
-    }
-
-    /**
-     * Get unique countries from cached data
-     */
-    public List<String> getUniqueCountries() {
-        try {
-            List<String> countries = database.entryDao().getUniqueCountries();
-            // Filter out null and empty values
-            List<String> filteredCountries = new ArrayList<>();
-            for (String country : countries) {
-                if (country != null && !country.trim().isEmpty() && !country.equalsIgnoreCase("null")) {
-                    filteredCountries.add(country.trim());
-                }
-            }
-            return filteredCountries;
-        } catch (Exception e) {
-            Log.e(TAG, "Error getting unique countries: " + e.getMessage(), e);
-            return new ArrayList<>();
-        }
-    }
 
     /**
      * Get unique years from cached data
@@ -307,33 +268,6 @@ public class DataRepository {
         }
     }
 
-    /**
-     * Get paginated data filtered by genre, country, and year
-     */
-    public void getPaginatedFilteredData(String genre, String country, String year, int page, int pageSize, PaginatedDataCallback callback) {
-        try {
-            int offset = page * pageSize;
-            List<EntryWithDetails> entities = database.entryDao().getEntriesWithDetailsFilteredPaged(
-                genre == null || genre.isEmpty() ? null : genre,
-                country == null || country.isEmpty() ? null : country,
-                year == null || year.isEmpty() ? null : year,
-                pageSize, offset
-            );
-            List<Entry> entries = DatabaseUtils.entitiesToEntries(entities);
-            int totalCount = database.entryDao().getEntriesFilteredCount(
-                genre == null || genre.isEmpty() ? null : genre,
-                country == null || country.isEmpty() ? null : country,
-                year == null || year.isEmpty() ? null : year
-            );
-            boolean hasMorePages = (offset + pageSize) < totalCount;
-
-            Log.d(TAG, "Loaded filtered page " + page + " with " + entries.size() + " items. Total: " + totalCount);
-            callback.onSuccess(entries, hasMorePages, totalCount);
-        } catch (Exception e) {
-            Log.e(TAG, "Error loading filtered paginated data: " + e.getMessage(), e);
-            callback.onError("Error loading filtered page: " + e.getMessage());
-        }
-    }
 
     public List<Entry> getTopRatedEntries(int count) {
         try {

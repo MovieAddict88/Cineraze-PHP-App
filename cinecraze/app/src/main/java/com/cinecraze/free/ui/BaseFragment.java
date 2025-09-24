@@ -41,16 +41,10 @@ public abstract class BaseFragment extends Fragment {
     protected FloatingActionButton fabViewMode;
     
     // Filter UI elements
-    protected MaterialButton btnGenreFilter;
-    protected MaterialButton btnCountryFilter;
     protected MaterialButton btnYearFilter;
-    protected FilterSpinner genreSpinner;
-    protected FilterSpinner countrySpinner;
     protected FilterSpinner yearSpinner;
     
     // Filter variables
-    protected String currentGenreFilter = null;
-    protected String currentCountryFilter = null;
     protected String currentYearFilter = null;
     protected boolean isLoading = false;
 
@@ -181,28 +175,16 @@ public abstract class BaseFragment extends Fragment {
     }
 
     protected void setupFilters() {
-        if (btnGenreFilter != null && btnCountryFilter != null && btnYearFilter != null) {
+        if (btnYearFilter != null) {
             // Initialize filter spinners only if they haven't been created yet
-            if (genreSpinner == null) {
-                genreSpinner = new FilterSpinner(getContext(), "Genre", new ArrayList<>(), currentGenreFilter);
-                countrySpinner = new FilterSpinner(getContext(), "Country", new ArrayList<>(), currentCountryFilter);
+            if (yearSpinner == null) {
                 yearSpinner = new FilterSpinner(getContext(), "Year", new ArrayList<>(), currentYearFilter);
 
                 // Common filter selection listener
                 FilterSpinner.OnFilterSelectedListener filterListener = (filterType, filterValue) -> {
-                    switch (filterType) {
-                        case "Genre":
-                            currentGenreFilter = filterValue;
-                            btnGenreFilter.setText(filterValue != null ? filterValue : "Genre");
-                            break;
-                        case "Country":
-                            currentCountryFilter = filterValue;
-                            btnCountryFilter.setText(filterValue != null ? filterValue : "Country");
-                            break;
-                        case "Year":
-                            currentYearFilter = filterValue;
-                            btnYearFilter.setText(filterValue != null ? filterValue : "Year");
-                            break;
+                    if (filterType.equals("Year")) {
+                        currentYearFilter = filterValue;
+                        btnYearFilter.setText(filterValue != null ? filterValue : "Year");
                     }
 
                     // Reset pagination and apply filters
@@ -211,23 +193,9 @@ public abstract class BaseFragment extends Fragment {
                     loadPageData();
                 };
 
-                genreSpinner.setOnFilterSelectedListener(filterListener);
-                countrySpinner.setOnFilterSelectedListener(filterListener);
                 yearSpinner.setOnFilterSelectedListener(filterListener);
 
                 // Set up button click listeners to show spinners
-                btnGenreFilter.setOnClickListener(v -> {
-                    populateFilterSpinners();
-                    dismissAllSpinners();
-                    genreSpinner.show(btnGenreFilter);
-                });
-
-                btnCountryFilter.setOnClickListener(v -> {
-                    populateFilterSpinners();
-                    dismissAllSpinners();
-                    countrySpinner.show(btnCountryFilter);
-                });
-
                 btnYearFilter.setOnClickListener(v -> {
                     populateFilterSpinners();
                     dismissAllSpinners();
@@ -241,28 +209,14 @@ public abstract class BaseFragment extends Fragment {
         if (dataRepository == null) return;
         
         // Get unique values from repository and populate spinners
-        List<String> genres = dataRepository.getUniqueGenres();
-        List<String> countries = dataRepository.getUniqueCountries();
         List<String> years = dataRepository.getUniqueYears();
         
-        if (genreSpinner != null) {
-            genreSpinner.updateFilterValues(genres);
-        }
-        if (countrySpinner != null) {
-            countrySpinner.updateFilterValues(countries);
-        }
         if (yearSpinner != null) {
             yearSpinner.updateFilterValues(years);
         }
     }
     
     protected void dismissAllSpinners() {
-        if (genreSpinner != null && genreSpinner.isShowing()) {
-            genreSpinner.dismiss();
-        }
-        if (countrySpinner != null && countrySpinner.isShowing()) {
-            countrySpinner.dismiss();
-        }
         if (yearSpinner != null && yearSpinner.isShowing()) {
             yearSpinner.dismiss();
         }
@@ -330,19 +284,13 @@ public abstract class BaseFragment extends Fragment {
         isLoading = true;
         
         // Use DataRepository's paginated methods for better performance
-        if (hasActiveFilters()) {
-            loadFilteredPageData();
-        } else if (!currentSearchQuery.isEmpty()) {
+        if (!currentSearchQuery.isEmpty()) {
             loadSearchPageData();
         } else if (!currentCategory.isEmpty()) {
             loadCategoryPageData();
         } else {
             loadAllPageData();
         }
-    }
-    
-    protected boolean hasActiveFilters() {
-        return currentGenreFilter != null || currentCountryFilter != null || currentYearFilter != null;
     }
     
     protected void loadAllPageData() {
@@ -387,20 +335,6 @@ public abstract class BaseFragment extends Fragment {
         });
     }
     
-    protected void loadFilteredPageData() {
-        dataRepository.getPaginatedFilteredData(currentGenreFilter, currentCountryFilter, currentYearFilter, 
-                currentPage, pageSize, new DataRepository.PaginatedDataCallback() {
-            @Override
-            public void onSuccess(List<Entry> entries, boolean hasMorePages, int totalCount) {
-                updatePageData(entries, hasMorePages, totalCount);
-            }
-            
-            @Override
-            public void onError(String error) {
-                handlePageLoadError(error);
-            }
-        });
-    }
     
     protected void updatePageData(List<Entry> entries, boolean hasMorePages, int totalCount) {
         if (getActivity() == null) return;
