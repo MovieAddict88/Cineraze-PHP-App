@@ -17,7 +17,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import androidx.appcompat.app.AlertDialog;
 
 import com.cinecraze.free.models.Entry;
-import com.cinecraze.free.models.PlaylistsVersion;
 import com.cinecraze.free.net.ApiService;
 import com.cinecraze.free.net.RetrofitClient;
 import com.cinecraze.free.repository.DataRepository;
@@ -117,6 +116,9 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
         listViewIcon = findViewById(R.id.list_view_icon);
         bottomNavigationView = (BubbleNavigationConstraintView) findViewById(R.id.bottom_navigation);
         searchIcon = findViewById(R.id.search_icon);
+        if (searchIcon != null) {
+            searchIcon.setVisibility(View.GONE);
+        }
         closeSearchIcon = findViewById(R.id.close_search_icon);
         titleLayout = findViewById(R.id.title_layout);
         searchLayout = findViewById(R.id.search_layout);
@@ -311,66 +313,10 @@ public class FastPaginatedMainActivity extends AppCompatActivity implements Pagi
      * FAST INITIAL LOAD - Only checks if cache exists, doesn't load all data
      */
     private void loadInitialDataFast() {
-        Log.d("FastPaginatedMainActivity", "Checking for updates on startup");
-        findViewById(R.id.progress_bar).setVisibility(View.VISIBLE);
-        checkForUpdatesAndPrompt();
-    }
-
-    private void checkForUpdatesAndPrompt() {
-        dataRepository.checkForUpdates(new DataRepository.UpdateCheckCallback() {
-            @Override
-            public void onUpdateAvailable(PlaylistsVersion newVersion) {
-                new AlertDialog.Builder(FastPaginatedMainActivity.this)
-                    .setTitle("Update Available")
-                    .setMessage("A new content update is available. Do you want to download it now?")
-                    .setPositiveButton("Download", (dialog, which) -> {
-                        showDownloadingDialog(-1L);
-                        dataRepository.downloadPlaylists(newVersion, new DataRepository.DataCallback() {
-                            @Override
-                            public void onSuccess(List<Entry> entries) {
-                                if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                    downloadingDialog.dismiss();
-                                }
-                                Toast.makeText(FastPaginatedMainActivity.this, "Update complete!", Toast.LENGTH_SHORT).show();
-                                loadFirstPageOnly();
-                                setupCarouselFast();
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                    downloadingDialog.dismiss();
-                                }
-                                Toast.makeText(FastPaginatedMainActivity.this, "Update failed: " + error, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    })
-                    .setNegativeButton("Later", (dialog, which) -> {
-                        Toast.makeText(FastPaginatedMainActivity.this, "Using cached data. Update will be available next time.", Toast.LENGTH_SHORT).show();
-                        loadFirstPageOnly();
-                        setupCarouselFast();
-                    })
-                    .setCancelable(false)
-                    .show();
-            }
-
-            @Override
-            public void onNoUpdate() {
-                Log.d("FastPaginatedMainActivity", "No update needed. Loading from cache.");
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                loadFirstPageOnly();
-                setupCarouselFast();
-            }
-
-            @Override
-            public void onError(String error) {
-                Log.e("FastPaginatedMainActivity", "Error checking for updates: " + error);
-                Toast.makeText(FastPaginatedMainActivity.this, "Could not check for updates. Using cached data.", Toast.LENGTH_LONG).show();
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                loadFirstPageOnly();
-                setupCarouselFast();
-            }
-        });
+        Log.d("FastPaginatedMainActivity", "Loading initial data directly with new API");
+        findViewById(R.id.progress_bar).setVisibility(View.GONE);
+        loadFirstPageOnly();
+        setupCarouselFast();
     }
 
     /**

@@ -17,7 +17,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import androidx.appcompat.app.AlertDialog;
 
 import com.cinecraze.free.R;
-import com.cinecraze.free.models.PlaylistsVersion;
 import com.cinecraze.free.ui.MainPagerAdapter;
 import com.cinecraze.free.repository.DataRepository;
 import com.cinecraze.free.net.ApiService;

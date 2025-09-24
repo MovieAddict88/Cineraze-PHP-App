@@ -23,6 +23,12 @@ public class DataRepository {
 
     private ApiService apiService;
 
+    // This callback is kept for compatibility with BaseFragment's pull-to-refresh
+    public interface DataCallback {
+        void onSuccess(List<Entry> entries);
+        void onError(String error);
+    }
+
     public interface PaginatedDataCallback {
         void onSuccess(List<Entry> entries, boolean hasMorePages, int totalCount);
         void onError(String error);

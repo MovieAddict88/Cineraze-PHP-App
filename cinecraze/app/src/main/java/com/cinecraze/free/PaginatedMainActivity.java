@@ -17,7 +17,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import androidx.appcompat.app.AlertDialog;
 
 import com.cinecraze.free.models.Entry;
-import com.cinecraze.free.models.PlaylistsVersion;
 import com.cinecraze.free.net.ApiService;
 import com.cinecraze.free.net.RetrofitClient;
 import com.cinecraze.free.repository.DataRepository;
@@ -86,6 +85,9 @@ public class PaginatedMainActivity extends AppCompatActivity implements Paginate
         listViewIcon = findViewById(R.id.list_view_icon);
         bottomNavigationView = (BubbleNavigationConstraintView) findViewById(R.id.bottom_navigation);
         searchIcon = findViewById(R.id.search_icon);
+        if (searchIcon != null) {
+            searchIcon.setVisibility(View.GONE);
+        }
         closeSearchIcon = findViewById(R.id.close_search_icon);
         titleLayout = findViewById(R.id.title_layout);
         searchLayout = findViewById(R.id.search_layout);
@@ -250,66 +252,10 @@ public class PaginatedMainActivity extends AppCompatActivity implements Paginate
     }
 
     private void loadInitialData() {
-        Log.d("PaginatedMainActivity", "Checking for updates on startup");
-        findViewById(R.id.progress_bar).setVisibility(View.VISIBLE);
-        checkForUpdatesAndPrompt();
-    }
-
-    private void checkForUpdatesAndPrompt() {
-        dataRepository.checkForUpdates(new DataRepository.UpdateCheckCallback() {
-            @Override
-            public void onUpdateAvailable(PlaylistsVersion newVersion) {
-                new AlertDialog.Builder(PaginatedMainActivity.this)
-                    .setTitle("Update Available")
-                    .setMessage("A new content update is available. Do you want to download it now?")
-                    .setPositiveButton("Download", (dialog, which) -> {
-                        showDownloadingDialog(-1L);
-                        dataRepository.downloadPlaylists(newVersion, new DataRepository.DataCallback() {
-                            @Override
-                            public void onSuccess(List<Entry> entries) {
-                                if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                    downloadingDialog.dismiss();
-                                }
-                                Toast.makeText(PaginatedMainActivity.this, "Update complete!", Toast.LENGTH_SHORT).show();
-                                loadFirstPage();
-                                setupCarouselFromCache();
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                                    downloadingDialog.dismiss();
-                                }
-                                Toast.makeText(PaginatedMainActivity.this, "Update failed: " + error, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    })
-                    .setNegativeButton("Later", (dialog, which) -> {
-                        Toast.makeText(PaginatedMainActivity.this, "Using cached data. Update will be available next time.", Toast.LENGTH_SHORT).show();
-                        loadFirstPage();
-                        setupCarouselFromCache();
-                    })
-                    .setCancelable(false)
-                    .show();
-            }
-
-            @Override
-            public void onNoUpdate() {
-                Log.d("PaginatedMainActivity", "No update needed. Loading from cache.");
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                loadFirstPage();
-                setupCarouselFromCache();
-            }
-
-            @Override
-            public void onError(String error) {
-                Log.e("PaginatedMainActivity", "Error checking for updates: " + error);
-                Toast.makeText(PaginatedMainActivity.this, "Could not check for updates. Using cached data.", Toast.LENGTH_LONG).show();
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                loadFirstPage();
-                setupCarouselFromCache();
-            }
-        });
+        Log.d("PaginatedMainActivity", "Loading initial data directly with new API");
+        findViewById(R.id.progress_bar).setVisibility(View.GONE);
+        loadFirstPage();
+        setupCarouselFromCache();
     }
 
     private void setupCarouselFromCache() {
@@ -426,88 +372,6 @@ public class PaginatedMainActivity extends AppCompatActivity implements Paginate
         Toast.makeText(this, "Failed to load page: " + error, Toast.LENGTH_SHORT).show();
     }
 
-    private void startInitialDownload() {
-        dataRepository.checkForUpdates(new DataRepository.UpdateCheckCallback() {
-            @Override
-            public void onUpdateAvailable(PlaylistsVersion newVersion) {
-                showDownloadingDialog(-1L);
-                dataRepository.downloadPlaylists(newVersion, new DataRepository.DataCallback() {
-                    @Override
-                    public void onSuccess(List<Entry> entries) {
-                        if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                            downloadingDialog.dismiss();
-                        }
-                        // Cache ready, now load only first page
-                        loadFirstPage();
-                        setupCarouselFromCache();
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        if (downloadingDialog != null && downloadingDialog.isShowing()) {
-                            downloadingDialog.dismiss();
-                        }
-                        findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                        Log.e("PaginatedMainActivity", "Error initializing data: " + error);
-                        Toast.makeText(PaginatedMainActivity.this, "Failed to initialize data: " + error, Toast.LENGTH_LONG).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onNoUpdate() {
-                loadFirstPage();
-                setupCarouselFromCache();
-            }
-
-            @Override
-            public void onError(String error) {
-                findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                Log.e("PaginatedMainActivity", "Error checking for updates: " + error);
-                Toast.makeText(PaginatedMainActivity.this, "Failed to check for updates: " + error, Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    private void showDownloadingDialog(long estimatedBytes) {
-        String sizeText;
-        if (estimatedBytes > 0) {
-            double mb = estimatedBytes / (1024.0 * 1024.0);
-            sizeText = String.format(Locale.getDefault(), "%.1f MB", mb);
-        } else {
-            sizeText = "unknown size";
-        }
-
-        android.widget.LinearLayout container = new android.widget.LinearLayout(this);
-        container.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        int padding = (int) (16 * getResources().getDisplayMetrics().density);
-        container.setPadding(padding, padding, padding, padding);
-
-        android.widget.ProgressBar progressBar = new android.widget.ProgressBar(this);
-        progressBar.setIndeterminate(true);
-        android.widget.LinearLayout.LayoutParams pbParams = new android.widget.LinearLayout.LayoutParams(
-            (int) (24 * getResources().getDisplayMetrics().density),
-            (int) (24 * getResources().getDisplayMetrics().density)
-        );
-        pbParams.setMargins(0, 0, padding, 0);
-        progressBar.setLayoutParams(pbParams);
-
-        android.widget.TextView message = new android.widget.TextView(this);
-        message.setText("Downloading data (" + sizeText + ")...\nPlease wait, this may take a moment.");
-        message.setTextSize(14);
-
-        container.addView(progressBar);
-        container.addView(message);
-
-        downloadingDialog = new AlertDialog.Builder(this)
-            .setTitle("Downloading")
-            .setView(container)
-            .setCancelable(false)
-            .create();
-        downloadingDialog.setCanceledOnTouchOutside(false);
-        downloadingDialog.show();
-    }
-
     // PaginationListener implementation
     @Override
     public void onPreviousPage() {
@@ -534,28 +398,6 @@ public class PaginatedMainActivity extends AppCompatActivity implements Paginate
         }
     }
 
-    public void refreshData() {
-        retryCount = 0;
-        currentPage = 0;
-        if (dataRepository != null) {
-            findViewById(R.id.progress_bar).setVisibility(View.VISIBLE);
-            dataRepository.refreshData(new DataRepository.DataCallback() {
-                @Override
-                public void onSuccess(List<Entry> entries) {
-                    // After refresh, load only first page - don't return all data
-                    loadFirstPage();
-                    setupCarouselFromCache();
-                    Toast.makeText(PaginatedMainActivity.this, "Data refreshed (" + dataRepository.getTotalEntriesCount() + " items)", Toast.LENGTH_SHORT).show();
-                }
-
-                @Override
-                public void onError(String error) {
-                    findViewById(R.id.progress_bar).setVisibility(View.GONE);
-                    Toast.makeText(PaginatedMainActivity.this, "Failed to refresh: " + error, Toast.LENGTH_LONG).show();
-                }
-            });
-        }
-    }
 
     @Override
     public void onBackPressed() {
